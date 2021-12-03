@@ -62,14 +62,20 @@ pub fn test<T>(part: String, day: &T)
         let path = path.unwrap();
         if path.file_name().to_string_lossy().starts_with("test") {
             let mut input = fs::read_to_string(path.path()).unwrap();
+            println!("{}",
+                format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy()));
             let mut solution = fs::read_to_string(
-                format!("./inputs/part1/solution_{}",path.file_name().to_string_lossy())
+                format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy())
             ).unwrap();
 
             input.pop();
             solution.pop();
 
-            assert_eq!(day.part1(&input), solution);
+            if part == "part1" {
+                assert_eq!(day.part1(&input), solution);
+            } else {
+                assert_eq!(day.part2(&input), solution);
+            }
         }
     }
     println!("Completed all tests for {}", part)

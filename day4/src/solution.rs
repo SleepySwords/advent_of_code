@@ -1,4 +1,3 @@
-use regex::Regex;
 use std::str::Split;
 use utils;
 
@@ -59,7 +58,7 @@ impl utils::Solution for Day {
             }
         }
 
-        String::from("Not implemented!")
+        String::from("Not found!")
     }
 }
 
@@ -70,13 +69,21 @@ fn get_boards(input: Split<&str>) -> Vec<Board> {
         let rows: Vec<&str> = board_data.split("\n").collect();
         for x in 0..5 {
             let row = rows[x];
-            let r = Regex::new(r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)").unwrap();
-            let captured = r.captures_iter(row);
-            for capture in captured {
-                for y in 0..5 {
-                    board[x][y] = capture[y + 1].parse::<u32>().unwrap();
-                }
+            let a: Vec<u32> = row
+                .split(' ')
+                .filter(|x| !x.is_empty())
+                .map(|x| x.parse::<u32>().unwrap())
+                .collect();
+            for y in 0..5 {
+                board[x][y] = a[y]
             }
+            // let r = Regex::new(r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)").unwrap();
+            // let captured = r.captures_iter(row);
+            // for capture in captured {
+            //     for y in 0..5 {
+            //         board[x][y] = capture[y + 1].parse::<u32>().unwrap();
+            //     }
+            // }
         }
         boards.push(Board { board });
     }
@@ -85,12 +92,6 @@ fn get_boards(input: Split<&str>) -> Vec<Board> {
 
 struct Board {
     board: [[u32; 5]; 5]
-}
-
-impl Clone for Board {
-    fn clone(&self) -> Self {
-        Board { board: self.board.clone() }
-    }
 }
 
 impl Board {

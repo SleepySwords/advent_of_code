@@ -28,13 +28,7 @@ impl utils::Solution for Day {
         let mut numbers = input.next().unwrap().split(",").map(|x| u32::from_str_radix(x, 10).unwrap());
         let mut boards = get_boards(input);
         let mut called_numbers: Vec<u32> = Vec::new();
-        loop {
-            let num = numbers.next();
-            if let None = num {
-                break;
-            }
-            let num = num.unwrap();
-
+        while let Some(num) = numbers.next() {
             called_numbers.push(num);
             boards.retain(|board| {
                 if let Some(_) = board.has_bingo(&called_numbers) {
@@ -43,12 +37,7 @@ impl utils::Solution for Day {
                 return true
             });
             if boards.len() == 1 {
-                loop {
-                    let num = numbers.next();
-                    if let None = num {
-                        break;
-                    }
-                    let num = num.unwrap();
+                while let Some(num) = numbers.next() {
                     called_numbers.push(num);
 
                     if let Some(x) = boards[0].has_bingo(&called_numbers) {

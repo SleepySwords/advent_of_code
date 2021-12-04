@@ -62,8 +62,6 @@ pub fn test<T>(part: String, day: &T)
         let path = path.unwrap();
         if path.file_name().to_string_lossy().starts_with("test") {
             let mut input = fs::read_to_string(path.path()).unwrap();
-            println!("{}",
-                format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy()));
             let mut solution = fs::read_to_string(
                 format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy())
             ).unwrap();

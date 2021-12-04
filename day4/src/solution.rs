@@ -26,23 +26,36 @@ impl utils::Solution for Day {
 
     fn part2(&self, input: &str) -> String {
         let mut input = input.split("\n\n");
-        let numbers: Vec<u32> = input.next().unwrap().split(",").map(|x| u32::from_str_radix(x, 10).unwrap()).collect();
+        let mut numbers = input.next().unwrap().split(",").map(|x| u32::from_str_radix(x, 10).unwrap());
         let mut boards = get_boards(input);
         let mut called_numbers: Vec<u32> = Vec::new();
-
-        for num in numbers {
-            called_numbers.push(num);
-            let mut to_remove: Vec<Board> = Vec::new();
-            for board in &boards {
-                if let Some(x) = board.has_bingo(&called_numbers) {
-                    if boards.len() == 1 {
-                        return (x * num).to_string();
-                    }
-                    to_remove.push(board.clone());
-                }
+        loop {
+            let num = numbers.next();
+            if let None = num {
+                break;
             }
-            for board in &to_remove {
-                boards.retain(|x| x.board != board.board);
+            let num = num.unwrap();
+
+            called_numbers.push(num);
+            boards.retain(|board| {
+                if let Some(_) = board.has_bingo(&called_numbers) {
+                    return false
+                }
+                return true
+            });
+            if boards.len() == 1 {
+                loop {
+                    let num = numbers.next();
+                    if let None = num {
+                        break;
+                    }
+                    let num = num.unwrap();
+                    called_numbers.push(num);
+
+                    if let Some(x) = boards[0].has_bingo(&called_numbers) {
+                        return (x * num).to_string()
+                    }
+                }
             }
         }
 

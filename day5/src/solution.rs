@@ -23,8 +23,6 @@ impl utils::Solution for Day {
                 for x in min(coords1[0], coords2[0])..=max(coords1[0], coords2[0]) {
                     field[coords1[1] as usize][x as usize] += 1;
                 }
-            } else {
-
             }
         }
         field.into_iter().flatten().filter(|&x| x >= 2).count().to_string()
@@ -55,29 +53,13 @@ impl utils::Solution for Day {
                     field[coords1[1] as usize][x as usize] += 1;
                 }
             } else {
-                if x1 < x2 {
-                    let gradient = (y1 - y2) / (x1 - x2);
-                    for x in x1..=x2 {
-                        field[(y1 + (gradient * (x - x1))) as usize][x as usize] += 1;
-                    }
-                } else {
-                    let gradient = (y2 - y1) / (x2 - x1);
-                    for x in x2..=x1 {
-                        field[(y2 + (gradient * (x - x2))) as usize][x as usize] += 1;
-                    }
+                let stating_y = if x1 < x2 { y1 } else { y2 };
+                let gradient = (y1 - y2) / (x1 - x2);
+                for x_offset in 0..=max(x1, x2) - min(x1, x2) {
+                    field[(stating_y + (gradient * x_offset)) as usize][(x_offset + min(x1, x2)) as usize] += 1;
                 }
             }
         }
-        // for y in 0..14 {
-        //     for x in 0..14 {
-        //         if field[y][x] == 0 {
-        //             print!(".")
-        //         } else {
-        //         print!("{}", field[y][x])
-        //             
-        //     }}
-        //     println!()
-        // }
         field.into_iter().flatten().filter(|&x| x >= 2).count().to_string()
     }
 }

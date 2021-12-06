@@ -12,9 +12,10 @@ fn simulate(input: &str, amount_days: usize) -> u64 {
 
     for day in 0..=amount_days {
         let grown_up = baby_fish[day % 9];
-        baby_fish[day % 9] = 0;
         adult_fish[day % 7] += grown_up;
+        baby_fish[day % 9] = 0;
 
+        // Since the fish reproduce a day after they hit the interval 0.
         let repo_fish = adult_fish[(day + 6) % 7];
         baby_fish[(day + 8) % 9] += repo_fish;
     }

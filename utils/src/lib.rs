@@ -57,22 +57,24 @@ fn get_path() -> String {
 pub fn test<T>(part: String, day: &T) 
     where T: Solution
 {
-    let paths = fs::read_dir(format!("./inputs/{}", part)).unwrap();
-    for path in paths {
-        let path = path.unwrap();
-        if path.file_name().to_string_lossy().starts_with("test") {
-            let mut input = fs::read_to_string(path.path()).unwrap();
-            let mut solution = fs::read_to_string(
-                format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy())
-            ).unwrap();
+    let input_dir = fs::read_dir(format!("./inputs/{}", part));
+    if let Ok(paths) = input_dir {
+        for path in paths {
+            let path = path.unwrap();
+            if path.file_name().to_string_lossy().starts_with("test") {
+                let mut input = fs::read_to_string(path.path()).unwrap();
+                let mut solution = fs::read_to_string(
+                    format!("./inputs/{}/solution_{}", part, path.file_name().to_string_lossy())
+                ).unwrap();
 
-            input.pop();
-            solution.pop();
+                input.pop();
+                solution.pop();
 
-            if part == "part1" {
-                assert_eq!(day.part1(&input), solution);
-            } else {
-                assert_eq!(day.part2(&input), solution);
+                if part == "part1" {
+                    assert_eq!(day.part1(&input), solution);
+                } else {
+                    assert_eq!(day.part2(&input), solution);
+                }
             }
         }
     }

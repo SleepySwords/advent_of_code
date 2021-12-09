@@ -76,8 +76,7 @@ impl utils::Solution for Day {
         let directions: Vec<Vec<i32>> = vec![vec![0, 1], vec![1, 0], vec![-1, 0], vec![0, -1]];
 
         let lowest_points = input.iter().enumerate().map(|(y, v)| {
-            v.iter()
-                .enumerate()
+            v.iter().enumerate()
                 .filter(|(x, &s)| {
                     directions.iter().all(|direction| {
                         if let Some(line) = input.get((y as i32 + direction[1]) as usize) {
@@ -94,15 +93,12 @@ impl utils::Solution for Day {
 
         let mut basin = HashMap::new();
 
-        for x in lowest_points {
-            basin.insert(x, 0);
-        }
-
         for y in 0..input.len() {
             for x in 0..input[y].len() {
                 if input[y][x] == 9 { continue; }
                 let pos = Self::find_lowest_point(&input, (x, y));
-                basin.entry(pos).and_modify(|x| *x += 1).or_insert(0);
+                let x = basin.entry(pos).or_insert(0);
+                *x += 1;
             }
         }
 

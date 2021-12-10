@@ -16,29 +16,30 @@ impl Day {
         }
     }
 
-    fn corrupt(chars: &mut Peekable<Chars>) -> Option<char> {
-        let openings = vec!['{', '(', '[', '<'];
-        let opening = chars.next().unwrap();
+    fn corrupt(input: &mut Peekable<Chars>) -> Option<char> {
+        let opening_chars = vec!['{', '(', '[', '<'];
+        let opening = input.next().unwrap();
 
-        let mut next = chars.peek();
-        if let None = next {
-            return None;
+        loop {
+            match input.peek() {
+                Some(next_char) => {
+                    if !opening_chars.contains(next_char) { break; }
+                    let corrupted = Self::corrupt(input);
+                    if let Some(t) = corrupted {
+                        return Some(t); 
+                    }
+                }
+                None => {
+                    return None;
+                }
+            };
         }
-        while openings.contains(next.unwrap()) {
-            let corrupted = Self::corrupt(chars);
-            if let Some(t) = corrupted {
-                return Some(t);
-            }
-            next = chars.peek();
-            if let None = next {
-                return None;
-            }
-        }
-        let closing = chars.next();
-        return match closing {
-            Some(close) => {
-                if Self::get_closing(opening) != close {
-                    Some(close)
+
+        let complement_char = input.next();
+        return match complement_char {
+            Some(complement) => {
+                if Self::get_closing(opening) != complement {
+                    Some(complement)
                 } else {
                     None
                 }
@@ -47,36 +48,37 @@ impl Day {
         };
     }
 
-    fn auto_correct(chars: &mut Peekable<Chars>) -> Option<String> {
-        let openings = vec!['{', '(', '[', '<'];
-        let opening = chars.next().unwrap();
+    fn auto_correct(input: &mut Peekable<Chars>) -> Option<String> {
+        let opening_chars = vec!['{', '(', '[', '<'];
+        let current_char = input.next().unwrap();
 
-        let mut next = chars.peek();
-        if let None = next {
-            return Some(Self::get_closing(opening).to_string());
+        loop {
+            match input.peek() {
+                Some(next_char) => {
+                    if !opening_chars.contains(next_char) { break; }
+                    let auto_correct = Self::auto_correct(input);
+                    if let Some(t) = auto_correct {
+                        let mut correction = Self::get_closing(current_char).to_string();
+                        correction.insert_str(0, &t);
+                        return Some(correction);
+                    }
+                }
+                None => {
+                    return Some(Self::get_closing(current_char).to_string());
+                }
+            };
         }
-        while openings.contains(next.unwrap()) {
-            let auto = Self::auto_correct(chars);
-            if let Some(t) = auto {
-                let mut str = Self::get_closing(opening).to_string();
-                str.insert_str(0, &t);
-                return Some(str);
-            }
-            next = chars.peek();
-            if let None = next {
-                return Some(Self::get_closing(opening).to_string());
-            }
-        }
-        let closing = chars.next();
-        return match closing {
-            Some(close) => {
-                if Self::get_closing(opening) != close {
+
+        let complement_char = input.next();
+        return match complement_char {
+            Some(complement_char) => {
+                if Self::get_closing(current_char) != complement_char {
                     panic!("They don't match")
                 } else {
                     None
                 }
             }
-            None => Some(Self::get_closing(opening).to_string()),
+            None => Some(Self::get_closing(current_char).to_string()),
         };
     }
 }

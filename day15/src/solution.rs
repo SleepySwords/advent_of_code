@@ -7,15 +7,6 @@ impl Day {
     fn add_vertex(pos: (isize, isize), adjacent: (isize, isize)) -> (isize, isize) {
         (pos.0 + adjacent.0, pos.1 + adjacent.1)
     }
-
-    fn distance_adjacent(input: &Vec<Vec<u32>>, pos: (isize, isize), adjacent: (isize, isize)) -> Option<u32> {
-        if let Some(line) = input.get((pos.1 + adjacent.1) as usize) {
-            if let Some(&value) = line.get((pos.0 + adjacent.0) as usize) {
-                return Some(value);
-            }
-        }
-        None
-    }
 }
 
 impl utils::Solution for Day {
@@ -26,7 +17,7 @@ impl utils::Solution for Day {
         let mut distance: BTreeMap<(isize, isize), u32> = BTreeMap::new();
         let mut queue = HashSet::new();
 
-        let mut input: Vec<Vec<u32>> = input
+        let input: Vec<Vec<u32>> = input
             .split("\n")
             .map(|x| x.chars().map(|y| y.to_digit(10).unwrap()).collect())
             .collect();
@@ -65,11 +56,7 @@ impl utils::Solution for Day {
                 }
             }
         }
-        // for y in start.1..=end.1 {
-        //     for x in start.0..=end.0 {
-        //         println!("{:?} {:?}", (x, y), distance[&(x, y)]);
-        //     }
-        // }
+
         distance[&end].to_string()
     }
 
@@ -97,14 +84,6 @@ impl utils::Solution for Day {
                 }
             }
         }
-
-        // for y in 0..input.len() {
-        //     for x in 0..input[0].len() {
-        //         print!("{}", input[y][x]);
-        //     }
-        //     println!("");
-        // }
-        // println!("");
 
         let mut input = i;
 

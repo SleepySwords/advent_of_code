@@ -1,9 +1,9 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.5.10'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
     id 'java'
 }
 
-group 'org.example'
+group 'com.github.sleepyswords'
 version '1.0-SNAPSHOT'
 
 repositories {

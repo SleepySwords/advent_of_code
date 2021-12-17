@@ -26,6 +26,6 @@ day24/target
 day25/target
 utils/target
 
-kotlin/.gradle/
-kotlin/.idea/
-kotlin/build/
+kotlin_solutions/.gradle/
+kotlin_solutions/.idea/
+kotlin_solutions/build/

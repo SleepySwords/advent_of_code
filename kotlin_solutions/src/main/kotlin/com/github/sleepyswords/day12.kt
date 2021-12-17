@@ -1,3 +1,4 @@
+package com.github.sleepyswords
 
 class Node(private val display: String, val connections: MutableList<Node>) {
     fun numberPathsToWithRepeating(node: Node, visited: Boolean, banned: List<Node>): Int {

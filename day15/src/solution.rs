@@ -68,7 +68,7 @@ impl utils::Solution for Day {
         let mut min_distance: HashSet<(u32, (isize, isize))> = HashSet::new();
         let mut queue = HashSet::new();
 
-        let mut input: Vec<Vec<u32>> = input
+        let input: Vec<Vec<u32>> = input
             .split("\n")
             .map(|x| x.chars().map(|y| y.to_digit(10).unwrap()).collect())
             .collect();
@@ -85,7 +85,7 @@ impl utils::Solution for Day {
             }
         }
 
-        let mut input = i;
+        let input: Vec<Vec<u32>> = i;
 
         let start = (0, 0);
         let end = ((input[0].len() - 1) as isize, (input.len() - 1) as isize);

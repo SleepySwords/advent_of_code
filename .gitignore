@@ -25,7 +25,14 @@ day23/target
 day24/target
 day25/target
 utils/target
+<<<<<<< HEAD
+
+build/
+
+||||||| bf97b79
+=======
 
 kotlin_solutions/.gradle/
 kotlin_solutions/.idea/
 kotlin_solutions/build/
+>>>>>>> master

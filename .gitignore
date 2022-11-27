@@ -1,7 +1,38 @@
 boilerplate/target
-day1/target
-day2/target
+day01/target
+day02/target
+day03/target
+day04/target
+day05/target
+day06/target
+day07/target
+day08/target
+day09/target
+day10/target
+day11/target
+day12_not_working/target
+day13/target
+day14/target
+day15/target
+day16/target
+day17/target
+day18/target
+day19/target
+day20/target
+day21/target
+day22/target
+day23/target
+day24/target
+day25/target
 utils/target
+<<<<<<< HEAD
 
 build/
 
+||||||| bf97b79
+=======
+
+kotlin_solutions/.gradle/
+kotlin_solutions/.idea/
+kotlin_solutions/build/
+>>>>>>> master

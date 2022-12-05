@@ -13,9 +13,8 @@ impl Day4 {
         (a.start() >= b.start()) && (a.end() <= b.end())
     }
     fn range_a_overlaps_b(a: &RangeInclusive<u32>, b: &RangeInclusive<u32>) -> bool {
-        // ((a.start() <= b.start()) && (a.end() >= b.start()))
-        //     || ((a.start() <= b.end()) && (a.end() >= b.end()))
-        (a.start() <= b.end()) && (a.end() >= b.start())
+        ((a.start() <= b.start()) && (a.end() >= b.start()))
+            || ((a.start() <= b.end()) && (a.end() >= b.end()))
     }
 }
 impl Solver for Day4 {

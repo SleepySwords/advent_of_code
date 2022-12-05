@@ -4,7 +4,6 @@ mod default_sol;
 
 use reqwest::blocking::Client;
 use reqwest::blocking::Response;
-use reqwest::header::COOKIE;
 use std::env;
 use std::fs;
 

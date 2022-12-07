@@ -109,6 +109,6 @@ impl Solver for Day5 {
 #[test]
 fn test_file1() -> Result<(), Box<dyn Error>> {
     use advent_of_code_lib::Part;
-    advent_of_code_lib::test_file(Day5, "test1", Part::Part1)?;
-    advent_of_code_lib::test_file(Day5, "test1", Part::Part2)
+    advent_of_code_lib::test_file(Day5, "5", "test1", Part::Part1)?;
+    advent_of_code_lib::test_file(Day5, "5", "test1", Part::Part2)
 }

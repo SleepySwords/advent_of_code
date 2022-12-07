@@ -19,7 +19,7 @@ fn download_input_and_run<T: Solver>(
     let session = env::var("AOC_SESSION").expect("Need to set AOC_SESSION");
 
     println!("Solution for day {}", day);
-    let buffer = fs::read_to_string(path());
+    let buffer = fs::read_to_string(path(day));
     match buffer {
         Ok(input) => Ok((solver.part1(&input), solver.part2(&input))),
         Err(_) => {
@@ -29,7 +29,7 @@ fn download_input_and_run<T: Solver>(
 
             if response.status().is_success() {
                 let input = response.text()?;
-                fs::write(path(), &input)?;
+                fs::write(path(day), &input)?;
                 println!("{}", solver.part1(&input));
                 println!("{}", solver.part2(&input));
                 Ok((solver.part1(&input), solver.part2(&input)))
@@ -55,8 +55,8 @@ fn input(session: String, year: &str, day: &str) -> Result<Response, Box<dyn Err
     Ok(response?)
 }
 
-fn path() -> String {
-    format!("inputs/main.input")
+fn path(day: &str) -> String {
+    format!("day{:0>2}/inputs/main.input", day)
 }
 
 pub fn test<T: Solver>(
@@ -72,8 +72,8 @@ pub fn test<T: Solver>(
     Ok(())
 }
 
-pub fn test_file<T: Solver>(solver: T, file: &str, part: Part) -> Result<(), Box<dyn Error>> {
-    let input = fs::read_to_string(format!("inputs/{}.input", file))?;
+pub fn test_file<T: Solver>(solver: T, day: &str, file: &str, part: Part) -> Result<(), Box<dyn Error>> {
+    let input = fs::read_to_string(format!("day{:0>2}/inputs/{}.input", day, file))?;
     let answer = fs::read_to_string(format!(
         "inputs/{}.{}",
         file,

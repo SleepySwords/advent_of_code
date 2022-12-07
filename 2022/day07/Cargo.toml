@@ -1,5 +1,5 @@
 [package]
-name = "day03"
+name = "day07"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 advent_of_code_lib = { path = "../advent_of_code_lib/" }
+regex = "1"
 itertools = "0.10.5"
+lazy_static = "1.4.0"
+typed-arena = "2.0.1"

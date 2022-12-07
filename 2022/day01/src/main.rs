@@ -40,13 +40,13 @@ mod tests {
 
     #[test]
     fn test_file_part1() -> Result<(), Box<dyn Error>> {
-        advent_of_code_lib::test_file(Day1, "test1", advent_of_code_lib::Part::Part1)?;
+        advent_of_code_lib::test_file(Day1, "1", "test1", advent_of_code_lib::Part::Part1)?;
         Ok(())
     }
 
     #[test]
     fn test_file_part2() -> Result<(), Box<dyn Error>> {
-        advent_of_code_lib::test_file(Day1, "test1", advent_of_code_lib::Part::Part2)?;
+        advent_of_code_lib::test_file(Day1, "1", "test1", advent_of_code_lib::Part::Part2)?;
         Ok(())
     }
 }

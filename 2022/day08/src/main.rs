@@ -22,38 +22,14 @@ fn validate_tree(trees: &Vec<Vec<u32>>, x: usize, y: usize) -> bool {
     return left || top || right || bottom;
 }
 
-fn count_tree_x<T: Iterator<Item = usize>>(trees: &Vec<Vec<u32>>, range: T, x: usize, y: usize) -> usize {
-    let mut counter = 0;
-    for f in range {
-        if trees[y][f] >= trees[y][x] {
-            counter += 1;
-            break;
-        }
-        counter += 1;
-    }
-    counter
-}
-
-fn count_tree_y<T: Iterator<Item = usize>>(trees: &Vec<Vec<u32>>, range: T, x: usize, y: usize) -> usize {
-    let mut counter = 0;
-    for f in range {
-        if trees[f][x] >= trees[y][x] {
-            counter += 1;
-            break;
-        }
-        counter += 1;
-    }
-    counter
-}
-
 fn scenic_score(trees: &Vec<Vec<u32>>, x: usize, y: usize) -> usize {
     if x == 0 || y == 0 || x == trees[y].len() - 1 || y == trees.len() - 1 {
         return 0;
     }
-    let left = count_tree_x(trees, (0..x).rev(), x, y);
-    let top = count_tree_y(trees, (0..y).rev(), x, y);
-    let right = count_tree_x(trees, x + 1..trees[y].len(), x, y);
-    let bottom = count_tree_y(trees, y + 1..trees.len(), x, y);
+    let left = (0..x).rev().position(|f| trees[y][f] >= trees[y][x]).map_or(x, |f| f + 1);
+    let top = (0..y).rev().position(|f| trees[f][x] >= trees[y][x]).map_or(y, |f| f + 1);
+    let right = (x + 1..trees[y].len()).position(|f| trees[y][f] >= trees[y][x]).map_or(trees[y].len() - x - 1, |f| f + 1);
+    let bottom = (y + 1..trees.len()).position(|f| trees[f][x] >= trees[y][x]).map_or(trees.len() - y - 1, |f| f + 1);
     left * bottom * top * right
 }
 
@@ -89,7 +65,6 @@ impl Solver for Day {
                     .collect_vec()
             })
             .collect_vec();
-        // scenic_score(&trees, 2, 1);
         let mut count = 0;
         for y in 0..trees.len() {
             for x in 0..trees[y].len() {
@@ -102,8 +77,3 @@ impl Solver for Day {
         count.to_string()
     }
 }
-
-// #[test]
-// fn test_file1() -> Result<(), Box<dyn Error>> {
-//     advent_of_code_lib::test_file(Day, "test1", advent_of_code_lib::Part::Part1)
-// }

@@ -125,10 +125,10 @@ impl Solver for Day {
 
     fn part2(&self, input: &str) -> String {
         let head = generate_file_structure(input);
-        let mut count = 70000000;
+        let mut size_to_delete = 70000000;
         let min_clear = head.borrow().size() - 40_000_000;
-        head.borrow().smallest_to_delete(min_clear, &mut count);
+        head.borrow().smallest_to_delete(min_clear, &mut size_to_delete);
 
-        count.to_string()
+        size_to_delete.to_string()
     }
 }

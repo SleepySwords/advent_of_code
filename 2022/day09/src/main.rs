@@ -19,23 +19,19 @@ fn close_enough(head: &(isize, isize), tail: &(isize, isize)) -> bool {
 // .....
 // .T..
 
-fn update_tail(head: (isize, isize), mut tail: (isize, isize)) -> (isize, isize) {
+fn update_tail(head: (isize, isize), tail: &mut (isize, isize)) {
     if !close_enough(&head, &tail) {
         tail.0 += (head.0 - tail.0).signum();
         tail.1 += (head.1 - tail.1).signum();
     }
-    tail
 }
 
-fn make_move(direction: &Direction, head: &mut (isize, isize), tail: &mut (isize, isize)) {
-    let new_head = (head.0 + direction.x_offset(), head.1 + direction.y_offset());
-    if !close_enough(&new_head, &tail) {
-        *tail = *head;
-    }
-    *head = new_head;
+fn update_head(direction: Direction, head: &mut (isize, isize)) {
+    head.0 += direction.x_offset();
+    head.1 += direction.y_offset();
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum Direction {
     Up,
     Down,
@@ -80,25 +76,31 @@ fn print_grid(values: &Vec<(isize, isize)>) {
     println!("");
 }
 
+fn parse_input(input: &str) -> impl Iterator<Item = Direction> + '_ {
+    input
+        .lines()
+        .map(|f| {
+            let direction = match f.chars().nth(0).unwrap() {
+                'R' => Direction::Right,
+                'U' => Direction::Up,
+                'D' => Direction::Down,
+                'L' => Direction::Left,
+                _ => unreachable!(),
+            };
+
+            std::iter::repeat(direction).take(f[2..].parse::<usize>().unwrap())
+        })
+        .flatten()
+}
+
 impl Solver for Day {
     fn part1(&self, input: &str) -> String {
-        let mut pos = input
-            .lines()
-            .map(|f| {
-                let direction = match f.chars().nth(0).unwrap() {
-                    'R' => Direction::Right,
-                    'U' => Direction::Up,
-                    'D' => Direction::Down,
-                    'L' => Direction::Left,
-                    _ => unreachable!(),
-                };
-                (direction, f[2..].parse::<usize>().unwrap())
-            })
-            .fold((HashSet::new(), ((0, 0), (0, 0))), |mut acc, inst| {
-                for _ in 0..inst.1 {
-                    make_move(&inst.0, &mut acc.1 .0, &mut acc.1 .1);
-                    acc.0.insert(acc.1 .1);
-                }
+        let mut pos = parse_input(input)
+            .fold((HashSet::new(), ((0, 0), (0, 0))), |mut acc, direction| {
+                let (head, tail) = &mut acc.1;
+                update_head(direction, head);
+                update_tail(*head, tail);
+                acc.0.insert(*tail);
                 acc
             })
             .0;
@@ -107,41 +109,22 @@ impl Solver for Day {
     }
 
     fn part2(&self, input: &str) -> String {
-        let mut pos = input
-            .lines()
-            .map(|f| {
-                let direction = match f.chars().nth(0).unwrap() {
-                    'R' => Direction::Right,
-                    'U' => Direction::Up,
-                    'D' => Direction::Down,
-                    'L' => Direction::Left,
-                    _ => unreachable!(),
-                };
-                (direction, f[2..].parse::<usize>().unwrap())
-            })
-            .fold((HashSet::new(), vec![(0, 0); 10]), |mut acc, inst| {
-                let direction = inst.0;
+        let mut pos = parse_input(input)
+            .fold((HashSet::new(), vec![(0, 0); 10]), |mut acc, direction| {
                 let mut positions = acc.1;
-                for _ in 0..inst.1 {
-                    let mut new_pos = vec![];
-                    let mut head = (
-                        positions[0].0 + direction.x_offset(),
-                        positions[0].1 + direction.y_offset(),
-                    );
-                    new_pos.push(head);
-                    for tail in positions.into_iter().skip(1) {
-                        if !close_enough(&head, &tail) {
-                            new_pos.push(update_tail(head, tail));
-                            head = update_tail(head, tail);
-                        } else {
-                            new_pos.push(tail);
-                            head = tail;
-                        }
-                    }
-                    positions = new_pos;
-                    if let Some(x) = positions.last() {
-                        acc.0.insert(x.clone());
-                    }
+                // Update head
+                update_head(direction, &mut positions[0]);
+
+                // Update the tails
+                let mut head = 0;
+                for tail in 1..positions.len() {
+                    update_tail(positions[head], &mut positions[tail]);
+                    head = tail;
+                }
+
+                // Insert last tail into the HashSet
+                if let Some(x) = positions.last() {
+                    acc.0.insert(*x);
                 }
                 (acc.0, positions)
             })

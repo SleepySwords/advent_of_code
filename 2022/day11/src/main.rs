@@ -2,7 +2,6 @@ use std::{
     collections::VecDeque,
     error::Error,
     fmt::Debug,
-    ops::{Add, Mul},
 };
 
 use advent_of_code_lib::{self, Solver};
@@ -60,8 +59,8 @@ fn inspect_items(monkey_number: usize, monkeys: &mut Vec<Monkey>, lcm: u64, divi
         if divide_by_3 {
             item = item / 3;
         } else {
-            // Cannot do modules when dividing by 3, as dividing by 3 screws the modules cycles up.
-            item = item % (lcm * 3);
+            // Cannot do modulo when dividing by 3, as dividing by 3 screws the modulo cycles up.
+            item = item % lcm;
         }
 
         let throw_to = if item % monkeys[monkey_number].divisible == 0 {
@@ -97,28 +96,20 @@ fn parse<'a>(input: &'a str) -> Vec<Monkey<'a>> {
             let operation = captures.get(2).unwrap().as_str();
             let second_variable = captures.get(3).unwrap().as_str();
             let operation = Box::new(move |x: u64| {
-                if operation == "*" {
-                    if first_variable == "old" {
-                        x
-                    } else {
-                        first_variable.parse().unwrap()
-                    }
-                    .mul(if second_variable == "old" {
-                        x
-                    } else {
-                        second_variable.parse().unwrap()
-                    })
+                let first = if first_variable == "old" {
+                    x
                 } else {
-                    if first_variable == "old" {
-                        x
-                    } else {
-                        first_variable.parse().unwrap()
-                    }
-                    .add(if second_variable == "old" {
-                        x
-                    } else {
-                        second_variable.parse().unwrap()
-                    })
+                    first_variable.parse().unwrap()
+                };
+                let second = if second_variable == "old" {
+                    x
+                } else {
+                    second_variable.parse().unwrap()
+                };
+                if operation == "*" {
+                    first * second
+                } else {
+                    first + second
                 }
             });
 
@@ -179,8 +170,3 @@ impl Solver for Day {
             .to_string()
     }
 }
-
-// #[test]
-// fn test_file1() -> Result<(), Box<dyn Error>> {
-//     advent_of_code_lib::test_file(Day, "test1", advent_of_code_lib::Part::Part1)
-// }

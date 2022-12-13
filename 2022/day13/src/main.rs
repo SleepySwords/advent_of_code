@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, error::Error, iter};
+use std::{cmp::Ordering, error::Error};
 
 use advent_of_code_lib::{self, Solver};
 use itertools::Itertools;
@@ -14,16 +14,11 @@ enum Type {
 }
 
 impl Type {
-    fn is_integer(&self) -> bool {
-        if let Self::Integer(_) = self {
-            true
-        } else {
-            false
+    fn list_vecs(self) -> Vec<Type> {
+        match self {
+            Type::List(l) => l,
+            l => vec![l],
         }
-    }
-
-    fn wrap_list(self) -> Type {
-        Self::List(vec![self])
     }
 }
 
@@ -34,49 +29,26 @@ enum CompareResult {
     Continue,
 }
 
-fn compare(mut left: Type, mut right: Type) -> CompareResult {
-    if left.is_integer() && right.is_integer() {
-        let left = if let Type::Integer(x) = left {
-            x
-        } else {
-            unreachable!()
-        };
-        let right = if let Type::Integer(x) = right {
-            x
-        } else {
-            unreachable!()
-        };
-        return match left.cmp(&right) {
-            std::cmp::Ordering::Less => CompareResult::Right,
-            std::cmp::Ordering::Equal => CompareResult::Continue,
-            std::cmp::Ordering::Greater => CompareResult::Wrong,
-        };
-    }
-    if left.is_integer() {
-        left = left.wrap_list();
-    }
-    if right.is_integer() {
-        right = right.wrap_list();
+fn compare(left: Type, right: Type) -> CompareResult {
+    if let Type::Integer(left) = left {
+        if let Type::Integer(right) = right {
+            return match left.cmp(&right) {
+                std::cmp::Ordering::Less => CompareResult::Right,
+                std::cmp::Ordering::Equal => CompareResult::Continue,
+                std::cmp::Ordering::Greater => CompareResult::Wrong,
+            };
+        }
     }
 
-    let mut left = if let Type::List(x) = left {
-        x.into_iter()
-    } else {
-        unreachable!()
-    };
-    let mut right = if let Type::List(x) = right {
-        x.into_iter()
-    } else {
-        unreachable!()
-    };
+    let mut left = left.list_vecs().into_iter();
+    let mut right = right.list_vecs().into_iter();
 
     for _ in 0..left.len().max(right.len()) {
         if let Some(left) = left.next() {
             if let Some(right) = right.next() {
                 match compare(left, right) {
-                    CompareResult::Wrong => return CompareResult::Wrong,
-                    CompareResult::Right => return CompareResult::Right,
                     CompareResult::Continue => continue,
+                    result => return result,
                 }
             } else {
                 return CompareResult::Wrong;
@@ -93,24 +65,27 @@ struct Day;
 
 fn parse_list<T: Iterator<Item = char>>(chars: &mut T) -> Type {
     let mut list = vec![];
-    let mut integer_build = String::from("");
+    let mut integer = String::from("");
+
+    fn add_integer(integer: String, list: &mut Vec<Type>) {
+        if !integer.is_empty() {
+            list.push(Type::Integer(integer.parse().unwrap()));
+        }
+    }
+
     loop {
         match chars.next().unwrap() {
             '[' => list.push(parse_list(chars)),
             ']' => {
-                if !integer_build.is_empty() {
-                    list.push(Type::Integer(integer_build.parse().unwrap()));
-                }
+                add_integer(integer, &mut list);
                 return Type::List(list);
             }
             ',' => {
-                if !integer_build.is_empty() {
-                    list.push(Type::Integer(integer_build.parse().unwrap()));
-                    integer_build = String::new();
-                }
+                add_integer(integer, &mut list);
+                integer = String::new();
             }
             a => {
-                integer_build.push(a);
+                integer.push(a);
             }
         }
     }
@@ -135,15 +110,14 @@ impl Solver for Day {
     }
 
     fn part2(&self, input: &str) -> String {
+        let dividers = [
+            Type::List(vec![Type::List(vec![Type::Integer(2)])]),
+            Type::List(vec![Type::List(vec![Type::Integer(6)])]),
+        ];
         input
             .split("\n\n")
             .flat_map(|f| f.lines().map(|x| parse_list(&mut x.chars().skip(1))))
-            .chain(iter::once(Type::List(vec![Type::List(vec![
-                Type::Integer(2),
-            ])])))
-            .chain(iter::once(Type::List(vec![Type::List(vec![
-                Type::Integer(6),
-            ])])))
+            .chain(dividers.clone())
             .sorted_by(|a, b| {
                 if compare(a.clone(), b.clone()) == CompareResult::Right {
                     Ordering::Less
@@ -151,10 +125,7 @@ impl Solver for Day {
                     Ordering::Greater
                 }
             })
-            .positions(|f| {
-                f == (Type::List(vec![Type::List(vec![Type::Integer(2)])]))
-                    || f == (Type::List(vec![Type::List(vec![Type::Integer(6)])]))
-            })
+            .positions(|f| dividers.contains(&f))
             .map(|f| f + 1)
             .product::<usize>()
             .to_string()

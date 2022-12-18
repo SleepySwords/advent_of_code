@@ -20,9 +20,7 @@ fn add_position(a: Position, b: Position) -> Position {
 }
 
 fn is_adjacent(a: Position, b: Position) -> bool {
-    POS.iter()
-        .map(|f| add_position(*f, a))
-        .any(|f| f == b)
+    POS.iter().map(|f| add_position(*f, a)).any(|f| f == b)
 }
 
 lazy_static! {
@@ -61,7 +59,7 @@ fn is_outside(cubes: &HashSet<Position>, position: Position) -> (bool, HashSet<P
     (false, path)
 }
 
-fn find_all_outside(cubes: &HashSet<Position>, position: Position) -> HashSet<Position> {
+fn find_all_connected(cubes: &HashSet<Position>, position: Position) -> HashSet<Position> {
     let mut path = HashSet::new();
     let mut queue: VecDeque<Position> = VecDeque::new();
     queue.push_front(position);
@@ -124,7 +122,7 @@ impl Solver for Day {
                     if !cubes.contains(&position) && !outside.contains(&position) {
                         let (is_outside, path) = is_outside(&cubes, position);
                         if is_outside {
-                            for a in find_all_outside(&cubes, position) {
+                            for a in find_all_connected(&cubes, position){
                                 outside.insert(a);
                             }
                             for a in path {
@@ -152,68 +150,5 @@ impl Solver for Day {
         }
 
         cubes_sides.to_string()
-        // calculate each individual cube subsection.
-        // Can't because of the way it works
-        // let mut cubes_sections: Vec<HashSet<Position>> = Vec::new();
-        // for line in input.lines() {
-        //     let mut i = line.split(",");
-        //     let x = i.next().unwrap().parse().unwrap();
-        //     let y = i.next().unwrap().parse().unwrap();
-        //     let z = i.next().unwrap().parse().unwrap();
-        //     let f = cubes_sections
-        //         .iter()
-        //         .filter(|c| c.iter().any(|f| is_next_to(*f, (x, y, z))))
-        //         .map(|f| f.clone())
-        //         .collect_vec();
-        //     cubes_sections.retain(|a| !f.contains(a));
-        //     let mut new = f
-        //         .iter()
-        //         .flat_map(|f| f.into_iter().map(|a| *a))
-        //         .collect::<HashSet<Position>>();
-        //     new.insert((x, y, z));
-        //     cubes_sections.push(new);
-        // }
-
-        // println!("{}", cubes_sections.len());
-        // let x = cubes_sections
-        //     .iter()
-        //     .map(|cubes| {
-        //         let max_z = cubes.iter().map(|f| f.2).max().unwrap();
-        //         let min_z = cubes.iter().map(|f| f.2).min().unwrap();
-        //         let mut sides = 0;
-        //         println!("{:?}", cubes);
-        //         for z in min_z..=max_z {
-        //             let max_x = cubes
-        //                 .iter()
-        //                 .filter(|f| f.2 == z)
-        //                 .map(|f| f.0)
-        //                 .max()
-        //                 .unwrap();
-        //             let min_x = cubes
-        //                 .iter()
-        //                 .filter(|f| f.2 == z)
-        //                 .map(|f| f.0)
-        //                 .min()
-        //                 .unwrap();
-        //             let x_l = max_x - min_x + 1;
-
-        //             let max_y = cubes
-        //                 .iter()
-        //                 .filter(|f| f.2 == z)
-        //                 .map(|f| f.1)
-        //                 .max()
-        //                 .unwrap();
-        //             let min_y = cubes
-        //                 .iter()
-        //                 .filter(|f| f.2 == z)
-        //                 .map(|f| f.1)
-        //                 .min()
-        //                 .unwrap();
-
-        //             let y_l = max_y - min_y + 1;
-        //             sides += x_l * 2 + y_l * 2;
-        //         }
-        //     })
-        //     .sum::<isize>();
     }
 }

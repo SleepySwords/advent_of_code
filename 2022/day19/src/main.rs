@@ -9,6 +9,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 struct Day;
 
 impl Solver for Day {
+    // Reducing the decision tree
+    // - Each minute (either buy or not buy)
+    // The not buy can be added to a skipped list, as to reduce the decision (collectors should be
+    // bought as early as possible)
     fn part1(&self, input: &str) -> String {
         input
             .lines()

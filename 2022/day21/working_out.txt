@@ -1,0 +1,33 @@
+root: pppw + sjmn
+dbpl: 5
+cczh: sllz + lgvd
+zczc: 2
+ptdq: humn - dvpt
+dvpt: 3
+lfqf: 4
+humn: 5
+ljgn: 2
+sjmn: drzm * dbpl
+sllz: 4
+pppw: cczh / lfqf
+lgvd: ljgn * ptdq
+drzm: hmdt - zczc
+hmdt: 32
+
+
+150 = pppw
+
+pppw = cczh / lfqf
+150 = cczh / 4
+cczh = 150 * 4
+
+600 = sllz + lgvd
+600 - 4 = lgvd
+lgvd = 596
+
+lgvd = ljgn * ptdq
+596 = 2 * ptdq
+ptdq = 298
+
+298 = humn - 3
+humn = 301

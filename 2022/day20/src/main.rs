@@ -53,6 +53,7 @@ impl Solver for Day {
                 let pos = numbers.iter().position(|f| f.0 == x).unwrap();
                 let mix_number = numbers[pos].1;
                 let new_pos = cycle(pos, mix_number, count);
+                // Removing and inserting is pretty inefficient, but oh well.
                 numbers.remove(pos);
                 numbers.insert(new_pos, (x, mix_number));
             }

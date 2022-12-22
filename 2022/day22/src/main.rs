@@ -320,7 +320,6 @@ impl Direction {
                 return ((min_4_x, min_4_y + (x % 50)), Direction::Right);
             }
         }
-        // println!("{:?} {:?} {:?}", self, region, (x, y));
         unreachable!()
     }
 }
@@ -426,34 +425,9 @@ impl Solver for Day {
                     cursor.facing = cursor.facing.clockwise();
                 }
                 number_builder = String::new();
-                // for y in 0..=max_y {
-                //     for x in 0..=max_x {
-                //         if cursor.position == (x, y) {
-                //             match cursor.facing {
-                //                 Direction::Right => print!("{}", ">".blue()),
-                //                 Direction::Down => print!("{}", "v".blue()),
-                //                 Direction::Left => print!("{}", "<".blue()),
-                //                 Direction::Up => print!("{}", "^".blue()),
-                //             }
-                //             continue;
-                //         }
-                //         if let Some(x) = map.get(&(x, y)) {
-                //             match x {
-                //                 (Tile::Open, a) => print!("{}", a.to_string()),
-                //                 (Tile::Wall, a) => print!("{}", a.to_string()),
-                //                 // (Tile::Open, _) => print!("."),
-                //                 // (Tile::Wall, _) => print!("#"),
-                //             }
-                //         } else {
-                //             print!(" ");
-                //         }
-                //     }
-                //     println!();
-                // }
             }
         }
         if !number_builder.is_empty() {
-            println!("{}", number_builder);
             turn(&map, &mut cursor, number_builder.parse().unwrap());
         }
         ((cursor.position.1 + 1) * 1000 + (cursor.position.0 + 1) * 4 + cursor.facing as isize)
@@ -520,8 +494,3 @@ impl Solver for Day {
             .to_string()
     }
 }
-
-// #[test]
-// fn test_file1() -> Result<(), Box<dyn Error>> {
-//     advent_of_code_lib::test_file(Day, "test1", advent_of_code_lib::Part::Part1)
-// }

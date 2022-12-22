@@ -1,7 +1,7 @@
-use std::{collections::HashMap, error::Error, num};
+// This is a non-generic solution, it only works on my input.
+use std::{collections::HashMap, error::Error};
 
 use advent_of_code_lib::{self, Solver};
-use colored::Colorize;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2022", "22")

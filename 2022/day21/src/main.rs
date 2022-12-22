@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, iter::Sum};
+use std::{collections::HashMap, error::Error};
 
 use advent_of_code_lib::{self, Solver};
 

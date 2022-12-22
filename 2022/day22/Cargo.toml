@@ -1,5 +1,5 @@
 [package]
-name = "day19"
+name = "day22"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,4 +10,3 @@ advent_of_code_lib = { path = "../advent_of_code_lib/" }
 regex = "1"
 itertools = "0.10.5"
 lazy_static = "1.4.0"
-rayon = "1.6"

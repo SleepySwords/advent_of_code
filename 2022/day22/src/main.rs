@@ -42,6 +42,8 @@ impl Direction {
         }
     }
 
+    // Down adds 1 because the way it is interpreted is that 1,1 is top left and it adds to go down or left from
+    // that point 
     fn offset(&self, (x, y): (isize, isize)) -> (isize, isize) {
         match self {
             Direction::Right => (x + 1, y),

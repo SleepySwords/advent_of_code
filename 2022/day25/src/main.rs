@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use advent_of_code_lib::{self, Solver};
-use itertools::Itertools;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2022", "25")
@@ -9,10 +8,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Day;
 
-// Bases conversion
-//
+// Base conversion
 
-fn convert_SNAFU_to_dec(number: &str) -> i64 {
+fn convert_snafu_to_dec(number: &str) -> i64 {
     let mut dec_number = 0;
     for (i, ch) in number.chars().rev().enumerate() {
         let num = match ch {
@@ -28,7 +26,6 @@ fn convert_SNAFU_to_dec(number: &str) -> i64 {
     dec_number
 }
 
-//
 // 12345
 // 12345 / 5 = 2459
 // 12345 % 5 = 0
@@ -72,7 +69,7 @@ fn convert_SNAFU_to_dec(number: &str) -> i64 {
 // c = 1-
 // n = 1-0---0
 
-fn convert_dec_to_SNAFU(mut number: i64) -> String {
+fn convert_dec_to_snafu(mut number: i64) -> String {
     let mut carry_over = 0;
     let mut number_builder = String::new();
     loop {
@@ -108,22 +105,10 @@ fn convert_dec_to_SNAFU(mut number: i64) -> String {
 
 impl Solver for Day {
     fn part1(&self, input: &str) -> String {
-        println!(
-            "{:?}",
-            convert_dec_to_SNAFU(input.lines().map(|f| convert_SNAFU_to_dec(f)).sum::<i64>())
-        );
-        println!(
-            "{:?}",
-            convert_dec_to_SNAFU(314159265)
-        );
-        0.to_string()
+            convert_dec_to_snafu(input.lines().map(|f| convert_snafu_to_dec(f)).sum::<i64>())
+        .to_string()
     }
 
     // fn part2(&self, input: &str) -> String {
     // }
 }
-
-// #[test]
-// fn test_file1() -> Result<(), Box<dyn Error>> {
-//     advent_of_code_lib::test_file(Day, "test1", advent_of_code_lib::Part::Part1)
-// }

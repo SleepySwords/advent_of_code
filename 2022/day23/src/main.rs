@@ -126,8 +126,8 @@ fn print(map: &HashSet<Position>) {
 
     println!("{} {} {} {}", min_x, max_x, min_y, max_y);
 
-    for y in -10..=10 {
-        for x in -10..=10 {
+    for y in -12..=123 {
+        for x in -12..=121 {
             if map.contains(&Position { x, y }) {
                 print!("#")
             } else {
@@ -163,10 +163,6 @@ impl Solver for Day {
             .filter(|(_, c)| *c == '#')
             .map(|(pos, _)| pos)
             .collect::<HashSet<Position>>();
-        // let mut order = HashMap::new();
-        // for p in &positions {
-        //     order.insert(*p, default_order.clone());
-        // }
         print(&positions);
         let mut order = default_order.into_iter().collect::<VecDeque<Direction>>();
         for _ in 0..10 {
@@ -193,8 +189,57 @@ impl Solver for Day {
         ((((max_x - min_x) + 1) * ((max_y - min_y) + 1)) as usize - positions.len() ).to_string()
     }
 
-    // fn part2(&self, input: &str) -> String {
-    // }
+    fn part2(&self, input: &str) -> String {
+        let default_order = vec![
+            Direction::North,
+            Direction::South,
+            Direction::West,
+            Direction::East,
+        ];
+        let mut positions = input
+            .lines()
+            .enumerate()
+            .flat_map(|(y, f)| {
+                f.chars().enumerate().map(move |(x, c)| {
+                    (
+                        Position {
+                            x: x as isize,
+                            y: y as isize,
+                        },
+                        c,
+                    )
+                })
+            })
+            .filter(|(_, c)| *c == '#')
+            .map(|(pos, _)| pos)
+            .collect::<HashSet<Position>>();
+        print(&positions);
+        let mut order = default_order.into_iter().collect::<VecDeque<Direction>>();
+        let mut c = 0;
+        loop {
+            c += 1;
+            let n = first_half(&positions, &mut order);
+            let n = n
+                .iter()
+                .map(|f| {
+                    if n.values().filter(|&a| a == f.1).count() == 1 {
+                        // let o = order.remove(f.0).unwrap();
+                        // order.insert(*f.1, o);
+                        *f.1
+                    } else {
+                        *f.0
+                    }
+                })
+                .collect::<HashSet<Position>>();
+            if n == positions {
+                break;
+            }
+            positions = n;
+            print(&positions);
+        }
+
+        c.to_string()
+    }
 }
 
 // #[test]

@@ -1,9 +1,9 @@
-use std::{error::Error, collections::HashMap};
+use std::{collections::HashMap, error::Error};
 
 use advent_of_code_lib::{self, Solver};
 use lazy_static::lazy_static;
-use regex::Regex;
 use rayon::prelude::*;
+use regex::Regex;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2022", "19")
@@ -19,14 +19,14 @@ enum Ore {
 }
 
 struct Blueprint {
-    ore_cost: [usize; 3],
-    clay_cost: [usize; 3],
-    obsidian_cost: [usize; 3],
-    geode_cost: [usize; 3],
+    ore_cost: [u16; 3],
+    clay_cost: [u16; 3],
+    obsidian_cost: [u16; 3],
+    geode_cost: [u16; 3],
 }
 
 impl Blueprint {
-    fn cost(&self, id: usize) -> [usize; 3] {
+    fn cost(&self, id: u16) -> [u16; 3] {
         if id == 0 {
             return self.ore_cost;
         } else if id == 1 {
@@ -40,11 +40,11 @@ impl Blueprint {
     }
 }
 
-fn can_purchase(cost: [usize; 3], resources: [usize; 3]) -> bool {
+fn can_purchase(cost: [u16; 3], resources: [u16; 3]) -> bool {
     resources[0] >= cost[0] && resources[1] >= cost[1] && resources[2] >= cost[2]
 }
 
-fn purchase(cost: [usize; 3], resources: [usize; 3]) -> [usize; 3] {
+fn purchase(cost: [u16; 3], resources: [u16; 3]) -> [u16; 3] {
     [
         resources[0] - cost[0],
         resources[1] - cost[1],
@@ -54,11 +54,11 @@ fn purchase(cost: [usize; 3], resources: [usize; 3]) -> [usize; 3] {
 
 fn turn(
     blueprint: &Blueprint,
-    robots: [usize; 4],
-    resources: [usize; 3],
-    skip_build: [bool; 4],
-    minutes: usize,
-) -> usize {
+    robots: [u16; 4],
+    resources: [u16; 3],
+    skip_build: u8,
+    minutes: u8,
+) -> u16 {
     // println!("{} {:?} {:?} {}", minutes, resources, robots, robots[3]);
     if minutes == 0 {
         return 0;
@@ -71,23 +71,31 @@ fn turn(
         resources[2] + robots[2],
     ];
 
-    let mut to_skip = (0..4).map(|ore| skip_build[ore] || can_purchase(blueprint.cost(ore), resources));
-    let to_skip = [
-        to_skip.next().unwrap(),
-        to_skip.next().unwrap(),
-        to_skip.next().unwrap(),
-        to_skip.next().unwrap(),
-    ];
+    let to_skip = (0..4)
+        .map(|ore| {
+            if skip_build >> ore & 1 == 1 || can_purchase(blueprint.cost(ore as u16), resources) {
+                1 << ore
+            } else {
+                0
+            }
+        })
+        .sum::<u8>();
 
     // If you did not purchase, add to skip.
-    let max = [0usize, 1usize, 2usize, 3usize].par_iter()
-        .filter(|&&ore| !skip_build[ore])
-        .filter(|&&ore| can_purchase(blueprint.cost(ore), resources))
+    //
+    // When is it useless to buy a robot?
+    // - When there is enough of that robot.
+    // - Could cut down by having a 'global max' that has been calc and if it can't reach it, it
+    // breaks of that pathway. (minutes * max geode ore can get) is less than max.
+    let max = [0, 1, 2, 3]
+        .par_iter()
+        .filter(|&&ore| skip_build >> ore & 1 == 0)
+        .filter(|&&ore| can_purchase(blueprint.cost(ore as u16), resources))
         .map(|&ore| {
-            let resources = purchase(blueprint.cost(ore), resources_after_mined);
+            let resources = purchase(blueprint.cost(ore as u16), resources_after_mined);
             let mut new_robots = robots;
             new_robots[ore] += 1;
-            turn(blueprint, new_robots, resources, [false; 4], minutes - 1) + robots[3]
+            turn(blueprint, new_robots, resources, 0, minutes - 1) + robots[3]
         })
         .max()
         .unwrap_or(0);
@@ -116,24 +124,24 @@ impl Solver for Day {
             .map(|(i, f)| {
                 let captures = BLUEPRINT_REGEX.captures(f).unwrap();
                 let ore_cost = [
-                    captures.get(1).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(1).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                     0,
                 ];
                 let clay_cost = [
-                    captures.get(2).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(2).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                     0,
                 ];
                 let obsidian_cost = [
-                    captures.get(3).unwrap().as_str().parse::<usize>().unwrap(),
-                    captures.get(4).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(3).unwrap().as_str().parse::<u16>().unwrap(),
+                    captures.get(4).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                 ];
                 let geode_cost = [
-                    captures.get(5).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(5).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
-                    captures.get(6).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(6).unwrap().as_str().parse::<u16>().unwrap(),
                 ];
                 let blueprint = Blueprint {
                     ore_cost,
@@ -141,12 +149,12 @@ impl Solver for Day {
                     obsidian_cost,
                     geode_cost,
                 };
-                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], [false; 4], 24);
+                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], 0, 24);
                 println!("Completed: {} {}", i, x);
                 (i, x)
             })
-            .map(|(i, a)| (i + 1) * a)
-            .sum::<usize>();
+            .map(|(i, a)| (i as u16 + 1) * a)
+            .sum::<u16>();
 
         println!("{:?}", sum);
 
@@ -160,24 +168,24 @@ impl Solver for Day {
             .map(|f| {
                 let captures = BLUEPRINT_REGEX.captures(f).unwrap();
                 let ore_cost = [
-                    captures.get(1).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(1).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                     0,
                 ];
                 let clay_cost = [
-                    captures.get(2).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(2).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                     0,
                 ];
                 let obsidian_cost = [
-                    captures.get(3).unwrap().as_str().parse::<usize>().unwrap(),
-                    captures.get(4).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(3).unwrap().as_str().parse::<u16>().unwrap(),
+                    captures.get(4).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
                 ];
                 let geode_cost = [
-                    captures.get(5).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(5).unwrap().as_str().parse::<u16>().unwrap(),
                     0,
-                    captures.get(6).unwrap().as_str().parse::<usize>().unwrap(),
+                    captures.get(6).unwrap().as_str().parse::<u16>().unwrap(),
                 ];
                 let blueprint = Blueprint {
                     ore_cost,
@@ -185,11 +193,11 @@ impl Solver for Day {
                     obsidian_cost,
                     geode_cost,
                 };
-                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], [false; 4], 32);
+                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], 0, 32);
                 println!("Completed {}", x);
                 x
             })
-            .product::<usize>()
+            .product::<u16>()
             .to_string()
     }
 }

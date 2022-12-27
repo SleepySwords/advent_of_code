@@ -10,6 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Day;
 
+#[derive(Clone, Copy, Debug)]
 enum Direction {
     Up,
     Down,
@@ -102,16 +103,19 @@ fn turn_bfs(
     let mut current_time = 0;
     let mut max_time = u32::MAX;
     let mut queue = VecDeque::new();
-    queue.push_back((0, head));
+    queue.push_back((0, head, vec![]));
 
-    while let Some((time, pos)) = queue.pop_front() {
-        println!("{:?} {} {:?} {}", max_time, current_time, pos, time);
+    while let Some((time, pos, path)) = queue.pop_front() {
         if time > max_time {
             continue;
         }
         if pos == goal {
             if time < max_time {
                 max_time = time;
+            }
+            println!("Path found: in {}", current_time);
+            for x in path.iter().enumerate() {
+                println!("{}: {:?}", x.0, x.1);
             }
         }
 
@@ -122,13 +126,18 @@ fn turn_bfs(
         for x in [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
             .iter()
             .filter_map(|&(x, y)| {
+                if time == 10 {
+                    println!("{:?} {}", (pos.0 + x, pos.1 + y), blizzards.iter().any(|f| f.0 == (pos.0 + x, pos.1 + y)));
+                    print(blizzards, head, goal, max_x, max_y);
+                    println!("{:?}", blizzards);
+                }
                 if !blizzards.iter().any(|f| f.0 == (pos.0 + x, pos.1 + y))
-                    && ((pos.0 + x) > 0
-                        && (pos.0 + x) < max_x as isize
+                    && (((pos.0 + x) > 0
+                        && (pos.0 + x) < max_x as isize - 1
                         && (pos.1 + y) > 0
-                        && (pos.1 + y) < max_y as isize)
-                    || (pos.0 + x, pos.1 + y) == head
-                    || (pos.0 + x, pos.1 + y) == goal
+                        && (pos.1 + y) < max_y as isize - 1)
+                        || (pos.0 + x, pos.1 + y) == head
+                        || (pos.0 + x, pos.1 + y) == goal)
                 {
                     Some((pos.0 + x, pos.1 + y))
                 } else {
@@ -136,8 +145,10 @@ fn turn_bfs(
                 }
             })
         {
-            if !queue.contains(&(time + 1, x)) {
-                queue.push_back((time + 1, x));
+            if !queue.iter().any(|&(t, z, _)| t == time + 1 && z == x) {
+                let mut path = path.clone();
+                path.push(x);
+                queue.push_back((time + 1, x, path));
             }
         }
     }
@@ -185,12 +196,17 @@ impl Solver for Day {
         let head = (1isize, 0isize);
         let goal = ((max_x - 2) as isize, (max_y - 1) as isize);
 
-        // for x in 0..6 {
-        //     simulate(&mut blizzards, max_x, max_y);
-        //     println!();
-        //     print(&blizzards, head, goal, max_x, max_y);
-        // }
-        turn_bfs(&mut blizzards, max_x, max_y, head, goal).to_string()
+        let mut b_2 = blizzards.clone();
+
+        println!("{:?}", goal);
+        for x in 0..=19 {
+            println!();
+            println!("Turn {}", x);
+            print(&b_2, head, goal, max_x, max_y);
+            simulate(&mut b_2, max_x, max_y);
+        }
+        print(&blizzards, head, goal, max_x, max_y);
+        (turn_bfs(&mut blizzards, max_x, max_y, head, goal) - 1).to_string()
     }
 
     // fn part2(&self, input: &str) -> String {

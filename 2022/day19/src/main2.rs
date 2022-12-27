@@ -54,18 +54,12 @@ fn purchase(cost: [u16; 3], resources: [u16; 3]) -> [u16; 3] {
 
 fn turn(
     blueprint: &Blueprint,
-    current_max: &mut u16,
     robots: [u16; 4],
     resources: [u16; 3],
     skip_build: u8,
     minutes: u8,
 ) -> u16 {
-    // println!("{} {:} {:?} {}", minutes, resources, robots, robots[3]);
-    let max: usize = (1..(minutes as usize + robots[3] as usize)).product();
-    if max < *current_max as usize {
-        // ie: don't consider this pathway.
-        return 0;
-    }
+    // println!("{} {:?} {:?} {}", minutes, resources, robots, robots[3]);
     if minutes == 0 {
         return 0;
     }
@@ -93,35 +87,29 @@ fn turn(
     // - When there is enough of that robot.
     // - Could cut down by having a 'global max' that has been calc and if it can't reach it, it
     // breaks of that pathway. (minutes * max geode ore can get) is less than max.
-    let mut c_max = 0;
     let max = [0, 1, 2, 3]
-        .iter()
+        .par_iter()
         .filter(|&&ore| skip_build >> ore & 1 == 0)
         .filter(|&&ore| can_purchase(blueprint.cost(ore as u16), resources))
         .map(|&ore| {
             let resources = purchase(blueprint.cost(ore as u16), resources_after_mined);
             let mut new_robots = robots;
             new_robots[ore] += 1;
-            turn(blueprint, &mut c_max, new_robots, resources, 0, minutes - 1)
+            turn(blueprint, new_robots, resources, 0, minutes - 1) + robots[3]
         })
         .max()
         .unwrap_or(0);
 
     // No purchase
-    let mut m =max.max(
+    max.max(
         turn(
             blueprint,
-            &mut c_max,
             robots,
             resources_after_mined,
             to_skip,
             minutes - 1,
-        ),
-    );
-    if current_max < &mut m {
-        *current_max = m;
-    }
-    m + robots[3]
+        ) + robots[3],
+    )
 }
 
 lazy_static! {
@@ -161,8 +149,7 @@ impl Solver for Day {
                     obsidian_cost,
                     geode_cost,
                 };
-                let mut c = 0;
-                let x = turn(&blueprint, &mut c, [1, 0, 0, 0], [0; 3], 0, 24);
+                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], 0, 24);
                 println!("Completed: {} {}", i, x);
                 (i, x)
             })
@@ -206,8 +193,7 @@ impl Solver for Day {
                     obsidian_cost,
                     geode_cost,
                 };
-                let mut c = 0;
-                let x = turn(&blueprint, &mut c, [1, 0, 0, 0], [0; 3], 0, 32);
+                let x = turn(&blueprint, [1, 0, 0, 0], [0; 3], 0, 32);
                 println!("Completed {}", x);
                 x
             })

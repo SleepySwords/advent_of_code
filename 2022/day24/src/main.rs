@@ -49,7 +49,6 @@ fn simulate(blizzards: &mut Vec<Blizzard>, max_x: usize, max_y: usize) {
         if pos.0 == 0 || pos.0 == (max_x - 1) as isize {
             *pos = direction.warp(max_x, max_y, *pos);
         }
-        // println!("{} {}", pos.0, max_x);
         if pos.1 == 0 || pos.1 == (max_y - 1) as isize {
             *pos = direction.warp(max_x, max_y, *pos);
         }
@@ -103,19 +102,15 @@ fn turn_bfs(
     let mut current_time = 0;
     let mut max_time = u32::MAX;
     let mut queue = VecDeque::new();
-    queue.push_back((0, head, vec![]));
+    queue.push_back((0, head));
 
-    while let Some((time, pos, path)) = queue.pop_front() {
+    while let Some((time, pos)) = queue.pop_front() {
         if time > max_time {
             continue;
         }
         if pos == goal {
             if time < max_time {
                 max_time = time;
-            }
-            // println!("Path found: in {}", current_time);
-            for x in path.iter().enumerate() {
-                // println!("{}: {:?}", x.0, x.1);
             }
         }
 
@@ -126,11 +121,6 @@ fn turn_bfs(
         for x in [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
             .iter()
             .filter_map(|&(x, y)| {
-                // if time == 10 {
-                //     println!("{:?} {}", (pos.0 + x, pos.1 + y), blizzards.iter().any(|f| f.0 == (pos.0 + x, pos.1 + y)));
-                //     print(blizzards, head, goal, max_x, max_y);
-                //     println!("{:?}", blizzards);
-                // }
                 if !blizzards.iter().any(|f| f.0 == (pos.0 + x, pos.1 + y))
                     && (((pos.0 + x) > 0
                         && (pos.0 + x) < max_x as isize - 1
@@ -145,10 +135,8 @@ fn turn_bfs(
                 }
             })
         {
-            if !queue.iter().any(|&(t, z, _)| t == time + 1 && z == x) {
-                let mut path = path.clone();
-                path.push(x);
-                queue.push_back((time + 1, x, path));
+            if !queue.iter().any(|&(t, z)| t == time + 1 && z == x) {
+                queue.push_back((time + 1, x));
             }
         }
     }
@@ -196,16 +184,6 @@ impl Solver for Day {
         let head = (1isize, 0isize);
         let goal = ((max_x - 2) as isize, (max_y - 1) as isize);
 
-        let mut b_2 = blizzards.clone();
-
-        println!("{:?}", goal);
-        for x in 0..=19 {
-            println!();
-            println!("Turn {}", x);
-            print(&b_2, head, goal, max_x, max_y);
-            simulate(&mut b_2, max_x, max_y);
-        }
-        print(&blizzards, head, goal, max_x, max_y);
         (turn_bfs(&mut blizzards, max_x, max_y, head, goal) - 1).to_string()
     }
 
@@ -227,44 +205,13 @@ impl Solver for Day {
             }
         }
 
-        for y in 0..=max_y {
-            for x in 0..=max_x {
-                if let Some(d) = blizzards.iter().find(|&f| f.0 == (x as isize, y as isize)) {
-                    print!(
-                        "{}",
-                        match d.1 {
-                            Direction::Up => '^',
-                            Direction::Down => 'v',
-                            Direction::Right => '>',
-                            Direction::Left => '<',
-                        }
-                    )
-                } else {
-                    print!(".")
-                }
-            }
-            println!()
-        }
         let head = (1isize, 0isize);
         let goal = ((max_x - 2) as isize, (max_y - 1) as isize);
 
-        let mut b_2 = blizzards.clone();
-
-        println!("{:?}", goal);
-        for x in 0..=19 {
-            println!();
-            println!("Turn {}", x);
-            print(&b_2, head, goal, max_x, max_y);
-            simulate(&mut b_2, max_x, max_y);
-        }
         print(&blizzards, head, goal, max_x, max_y);
-        println!("{}", (turn_bfs(&mut blizzards, max_x, max_y, head, goal) - 1).to_string());
-        println!("{}", (turn_bfs(&mut blizzards, max_x, max_y, goal, head)).to_string());
-        (turn_bfs(&mut blizzards, max_x, max_y, head, goal)).to_string()
+        ((turn_bfs(&mut blizzards, max_x, max_y, head, goal) - 1)
+            + (turn_bfs(&mut blizzards, max_x, max_y, goal, head))
+            + (turn_bfs(&mut blizzards, max_x, max_y, head, goal)))
+        .to_string()
     }
 }
-
-// #[test]
-// fn test_file1() -> Result<(), Box<dyn Error>> {
-//     advent_of_code_lib::test_file(Day, "test1", advent_of_code_lib::Part::Part1)
-// }

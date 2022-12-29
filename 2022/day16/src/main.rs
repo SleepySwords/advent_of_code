@@ -78,7 +78,8 @@ fn dfs(
                 distance,
                 *neighbour,
                 opened,
-                minutes - distance[&(position, *neighbour)] as isize - 1,
+                minutes - distance[&(position, *neighbour)] as isize - 1, // distance for travel - 1 for
+                                                                          // openning it.
             ) + total_release
         })
         .max()
@@ -140,9 +141,8 @@ fn dfs_elephant(
             .max_by(|a, b| a.0.cmp(&b.0))
             .unwrap_or((total_release, vec![h_position], vec![e_position]))
     } else if e_progress == 0 {
-        valves[&e_position]
-            .1
-            .iter()
+        valves
+            .keys()
             .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != h_position)
             .map(|neighbour| {
                 let (release, h, mut e) = dfs_elephant(
@@ -161,12 +161,11 @@ fn dfs_elephant(
             .max_by(|a, b| a.0.cmp(&b.0))
             .unwrap_or((total_release, vec![h_position], vec![e_position]))
     } else if h_progress == 0 {
-        valves[&h_position]
-            .1
-            .iter()
+        valves
+            .keys()
             .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != e_position)
             .map(|neighbour| {
-                let (release, h, mut e) = dfs_elephant(
+                let (release, mut h, e) = dfs_elephant(
                     valves,
                     distance,
                     *neighbour,
@@ -176,7 +175,7 @@ fn dfs_elephant(
                     opened,
                     minutes - 1,
                 );
-                e.push(e_position);
+                h.push(h_position);
                 (release + total_release, h, e)
             })
             .max_by(|a, b| a.0.cmp(&b.0))
@@ -290,9 +289,28 @@ impl Solver for Day {
             );
         }
 
-        let (release, h, e) = dfs_elephant(&valves, &distances, 0, 0, 0, 0, 0, 26);
+        let (release, h, e) = valves
+            .keys()
+            .filter(|&&f| f != 0)
+            .permutations(2)
+            .map(|neighbours| {
+                let h_neighbour = neighbours[0];
+                let e_neighbour = neighbours[1];
+                dfs_elephant(
+                    &valves,
+                    &distances,
+                    *h_neighbour,
+                    distances[&(0, *h_neighbour)] as isize,
+                    *e_neighbour,
+                    distances[&(0, *e_neighbour)] as isize,
+                    1,
+                    26,
+                )
+            })
+            .max_by(|a, b| a.0.cmp(&b.0)).unwrap();
         println!("{:?}", h.iter().map(|f| valid_valves[*f]).collect_vec());
         println!("{:?}", e.iter().map(|f| valid_valves[*f]).collect_vec());
+        println!("{:?}", distances[&(0, valid_valves.iter().position(|&f| f == "JJ").unwrap())]);
         release.to_string()
     }
 }

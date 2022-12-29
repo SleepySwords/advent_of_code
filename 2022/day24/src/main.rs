@@ -92,6 +92,7 @@ fn print(
 // State includes
 // - Time taken,
 // - Position
+// - Blizzard in vec is a bottleneck.
 fn turn_bfs(
     blizzards: &mut Vec<Blizzard>,
     max_x: usize,

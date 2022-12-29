@@ -2,7 +2,7 @@
 // should not be cloning the path EVERY SINGLE TIME I GO TO EXPLORE NEXT NODE.
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{hash_map::ValuesMut, HashMap, VecDeque},
     error::Error,
 };
 
@@ -91,116 +91,90 @@ fn dfs(
 
 fn select_next(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     h_progress: isize,
     e_position: usize,
     e_progress: isize,
-    opened: u16,
+    mut opened: u16,
     minutes: isize,
-) -> usize {
-    // if let Some(r) = cache.get(&(
-    //     h_position, h_progress, e_position, e_progress, opened, minutes,
-    // )) {
-    //     return *r;
-    // }
-    let r = if e_progress == h_progress {
-        let release = both_open(
+) -> (usize, Vec<usize>, Vec<usize>) {
+    if e_progress == h_progress {
+        let (release, mut h, mut e) = dfs_both(
             valves,
-            cache,
             distance,
-            h_position,
+            *neighbour,
             e_position,
             opened,
-            minutes - h_progress,
+            minutes - 1 - h_progress,
         );
-        release
+        h.push(h_position);
+        return (release + total_release, h, e);
     } else if e_progress > h_progress {
-        let release = human_open(
+        let (release, mut h, mut e) = dfs_human(
             valves,
-            cache,
             distance,
-            h_position,
+            *neighbour,
             e_position,
             e_progress - h_progress,
             opened,
-            minutes - h_progress,
+            minutes - 1 - h_progress,
         );
-        release
+        h.push(h_position);
+        return (release + total_release, h, e);
     } else {
-        let release = elephant_open(
+        let (release, mut h, mut e) = dfs_elephant(
             valves,
-            cache,
             distance,
-            h_position,
+            *neighbour,
             h_progress - e_progress,
             e_position,
             opened,
-            minutes - e_progress,
+            minutes - 1 - e_progress,
         );
-        release
-    };
-    // cache.insert(
-    //     (
-    //         h_position, h_progress, e_position, e_progress, opened, minutes,
-    //     ),
-    //     r,
-    // );
-    r
+        h.push(h_position);
+        return (release + total_release, h, e);
+    }
 }
 
-fn human_open(
+fn dfs_human(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     e_position: usize,
     e_progress: isize,
     mut opened: u16,
     minutes: isize,
-) -> usize {
+) -> (usize, Vec<usize>, Vec<usize>) {
     if minutes <= 0 {
-        return 0;
+        return (0, vec![h_position], vec![e_position]);
     }
-    let total_release = valves[&h_position].0 * (minutes - 1) as usize;
+    let total_release = valves[&h_position].0 * minutes as usize;
     opened = opened | 1 << h_position;
     valves
         .keys()
         .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != e_position)
         .map(|neighbour| {
             let h_progress = distance[&(h_position, *neighbour)] as isize;
-            select_next(
-                valves,
-                cache,
-                distance,
-                *neighbour,
-                h_progress,
-                e_position,
-                e_progress - 1, // Compensate for opening a valve
-                opened,
-                minutes - 1, // subtract one to open a valve
-            )
+            select_next()
         })
-        .max()
-        .unwrap_or(0)
-        + total_release
+        .max_by(|a, b| a.0.cmp(&b.0))
+        .unwrap_or((total_release, vec![h_position], vec![e_position]))
 }
 
-fn both_open(
+fn dfs_both(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     e_position: usize,
     mut opened: u16,
     minutes: isize,
-) -> usize {
+) -> (usize, Vec<usize>, Vec<usize>) {
     if minutes <= 0 {
-        return 0;
+        return (0, vec![h_position], vec![e_position]);
     }
-    let total_release = valves[&h_position].0 * (minutes - 1) as usize
-        + valves[&e_position].0 * (minutes - 1) as usize;
+    let total_release =
+        valves[&h_position].0 * minutes as usize + valves[&e_position].0 * minutes as usize;
     opened = opened | 1 << h_position;
     opened = opened | 1 << e_position;
     valves
@@ -212,58 +186,109 @@ fn both_open(
             let e_neighbour = neighbours[1];
             let h_progress = distance[&(h_position, *h_neighbour)] as isize;
             let e_progress = distance[&(e_position, *e_neighbour)] as isize;
-            select_next(
-                valves,
-                cache,
-                distance,
-                *h_neighbour,
-                h_progress,
-                *e_neighbour,
-                e_progress,
-                opened,
-                minutes - 1, // subtract one to open a valve
-            )
+            if e_progress == h_progress {
+                let (release, mut h, mut e) = dfs_both(
+                    valves,
+                    distance,
+                    *h_neighbour,
+                    *e_neighbour,
+                    opened,
+                    minutes - 1 - h_progress,
+                );
+                h.push(h_position);
+                e.push(e_position);
+                return (release + total_release, h, e);
+            } else if e_progress > h_progress {
+                let (release, mut h, mut e) = dfs_human(
+                    valves,
+                    distance,
+                    *h_neighbour,
+                    *e_neighbour,
+                    e_progress - h_progress,
+                    opened,
+                    minutes - 1 - h_progress,
+                );
+                h.push(h_position);
+                e.push(e_position);
+                return (release + total_release, h, e);
+            } else {
+                let (release, mut h, mut e) = dfs_elephant(
+                    valves,
+                    distance,
+                    *h_neighbour,
+                    h_progress - e_progress,
+                    *e_neighbour,
+                    opened,
+                    minutes - 1 - e_progress,
+                );
+                h.push(h_position);
+                e.push(e_position);
+                return (release + total_release, h, e);
+            }
         })
-        .max()
-        .unwrap_or(0)
-        + total_release
+        .max_by(|a, b| a.0.cmp(&b.0))
+        .unwrap_or((total_release, vec![h_position], vec![e_position]))
 }
 
-fn elephant_open(
+fn dfs_elephant(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     h_progress: isize,
     e_position: usize,
     mut opened: u16,
     minutes: isize,
-) -> usize {
+) -> (usize, Vec<usize>, Vec<usize>) {
     if minutes <= 0 {
-        return 0;
+        return (0, vec![h_position], vec![e_position]);
     }
-    let total_release = valves[&e_position].0 * (minutes - 1) as usize;
-    opened = opened | 1 << e_position;
+    let total_release = valves[&h_position].0 * minutes as usize;
+    opened = opened | 1 << h_position;
     valves
         .keys()
-        .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != h_position)
+        .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != e_position)
         .map(|neighbour| {
-            let e_progress = distance[&(e_position, *neighbour)] as isize;
-            select_next(
-                valves,
-                cache,
-                distance,
-                h_position,
-                h_progress - 1, // Compensate for opening a valve (and taking a turn)
-                *neighbour,
-                e_progress,
-                opened,
-                minutes - 1, // Subtract one for opening the valve
-            )
+            let e_progress = distance[&(h_position, *neighbour)] as isize;
+
+            if e_progress == h_progress {
+                let (release, mut h, mut e) = dfs_both(
+                    valves,
+                    distance,
+                    *neighbour,
+                    e_position,
+                    opened,
+                    minutes - 1 - h_progress,
+                );
+                e.push(e_position);
+                return (release + total_release, h, e);
+            } else if e_progress > h_progress {
+                let (release, mut h, mut e) = dfs_human(
+                    valves,
+                    distance,
+                    *neighbour,
+                    e_position,
+                    e_progress - h_progress,
+                    opened,
+                    minutes - 1 - h_progress,
+                );
+                e.push(e_position);
+                return (release + total_release, h, e);
+            } else {
+                let (release, mut h, mut e) = dfs_elephant(
+                    valves,
+                    distance,
+                    *neighbour,
+                    h_progress - e_progress,
+                    e_position,
+                    opened,
+                    minutes - 1 - e_progress,
+                );
+                e.push(e_position);
+                return (release + total_release, h, e);
+            }
         })
-        .max()
-        .unwrap_or(0)
-        + total_release
+        .max_by(|a, b| a.0.cmp(&b.0))
+        .unwrap_or((total_release, vec![h_position], vec![e_position]))
 }
 
 impl Solver for Day {
@@ -271,7 +296,6 @@ impl Solver for Day {
         let grid = input
             .lines()
             .map(|f| {
-                println!("{}", f);
                 let captures = VALVE_REGEX.captures(f).unwrap();
                 let valve_name = captures.get(1).unwrap().as_str();
                 let flow_value = captures.get(2).unwrap().as_str().parse().unwrap();
@@ -361,9 +385,7 @@ impl Solver for Day {
             );
         }
 
-        let mut cache = HashMap::new();
-
-        let release = valves
+        let (release, h, e) = valves
             .keys()
             .filter(|&&f| f != 0)
             .permutations(2)
@@ -372,31 +394,48 @@ impl Solver for Day {
                 let e_neighbour = neighbours[1];
                 let h_progress = distance[&(0, *h_neighbour)] as isize;
                 let e_progress = distance[&(0, *e_neighbour)] as isize;
-                // if *h_neighbour == valid_valves.iter().position(|&f| f == "JJ").unwrap()
-                //     && *e_neighbour == valid_valves.iter().position(|&f| f == "DD").unwrap()
-                // {
-                //     println!("{:?}", valid_valves.iter().enumerate().collect_vec());
-                //     println!(
-                //         "ok {}",
-                let r = select_next(
-                    &valves,
-                    &mut cache,
-                    &distance,
-                    *h_neighbour,
-                    h_progress,
-                    *e_neighbour,
-                    e_progress,
-                    0,
-                    26,
-                );
-                println!("{}", r);
-                r
-                // );
-                // }
-                // 0
+                if e_progress == h_progress {
+                    let (release, mut h, mut e) = dfs_both(
+                        &valves,
+                        &distance,
+                        *h_neighbour,
+                        *e_neighbour,
+                        0,
+                        26 - h_progress,
+                    );
+                    return (release, h, e);
+                } else if e_progress > h_progress {
+                    let (release, mut h, mut e) = dfs_human(
+                        &valves,
+                        &distance,
+                        *h_neighbour,
+                        *e_neighbour,
+                        e_progress - h_progress,
+                        0,
+                        26 - h_progress,
+                    );
+                    return (release, h, e);
+                } else {
+                    let (release, mut h, mut e) = dfs_elephant(
+                        &valves,
+                        &distance,
+                        *h_neighbour,
+                        h_progress - e_progress,
+                        *e_neighbour,
+                        0,
+                        26 - e_progress,
+                    );
+                    return (release, h, e);
+                }
             })
-            .max()
+            .max_by(|a, b| a.0.cmp(&b.0))
             .unwrap();
+        println!("{:?}", h.iter().map(|f| valid_valves[*f]).collect_vec());
+        println!("{:?}", e.iter().map(|f| valid_valves[*f]).collect_vec());
+        println!(
+            "{:?}",
+            distance[&(0, valid_valves.iter().position(|&f| f == "JJ").unwrap())]
+        );
         release.to_string()
     }
 }

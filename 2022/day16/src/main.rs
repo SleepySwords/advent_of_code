@@ -10,6 +10,7 @@ use advent_of_code_lib::{self, Solver};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
+use rayon::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2022", "16")
@@ -91,7 +92,7 @@ fn dfs(
 
 fn select_next(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
+    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     h_progress: isize,
@@ -108,7 +109,7 @@ fn select_next(
     let r = if e_progress == h_progress {
         let release = both_open(
             valves,
-            cache,
+            // cache,
             distance,
             h_position,
             e_position,
@@ -119,7 +120,7 @@ fn select_next(
     } else if e_progress > h_progress {
         let release = human_open(
             valves,
-            cache,
+            // cache,
             distance,
             h_position,
             e_position,
@@ -131,7 +132,7 @@ fn select_next(
     } else {
         let release = elephant_open(
             valves,
-            cache,
+            // cache,
             distance,
             h_position,
             h_progress - e_progress,
@@ -141,6 +142,7 @@ fn select_next(
         );
         release
     };
+    // println!("{}", cache.len());
     // cache.insert(
     //     (
     //         h_position, h_progress, e_position, e_progress, opened, minutes,
@@ -152,7 +154,7 @@ fn select_next(
 
 fn human_open(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
+    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     e_position: usize,
@@ -172,7 +174,7 @@ fn human_open(
             let h_progress = distance[&(h_position, *neighbour)] as isize;
             select_next(
                 valves,
-                cache,
+                // cache,
                 distance,
                 *neighbour,
                 h_progress,
@@ -189,7 +191,7 @@ fn human_open(
 
 fn both_open(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
+    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     e_position: usize,
@@ -214,7 +216,7 @@ fn both_open(
             let e_progress = distance[&(e_position, *e_neighbour)] as isize;
             select_next(
                 valves,
-                cache,
+                // cache,
                 distance,
                 *h_neighbour,
                 h_progress,
@@ -231,7 +233,7 @@ fn both_open(
 
 fn elephant_open(
     valves: &HashMap<usize, (usize, Vec<usize>)>,
-    cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
+    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
     distance: &HashMap<(usize, usize), usize>,
     h_position: usize,
     h_progress: isize,
@@ -246,12 +248,13 @@ fn elephant_open(
     opened = opened | 1 << e_position;
     valves
         .keys()
+        .par_bridge()
         .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != h_position)
         .map(|neighbour| {
             let e_progress = distance[&(e_position, *neighbour)] as isize;
             select_next(
                 valves,
-                cache,
+                // cache,
                 distance,
                 h_position,
                 h_progress - 1, // Compensate for opening a valve (and taking a turn)
@@ -361,7 +364,7 @@ impl Solver for Day {
             );
         }
 
-        let mut cache = HashMap::new();
+        // let mut cache = HashMap::new();
 
         let release = valves
             .keys()
@@ -380,7 +383,7 @@ impl Solver for Day {
                 //         "ok {}",
                 let r = select_next(
                     &valves,
-                    &mut cache,
+                    // &mut cache,
                     &distance,
                     *h_neighbour,
                     h_progress,

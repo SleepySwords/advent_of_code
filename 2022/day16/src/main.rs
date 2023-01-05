@@ -10,7 +10,6 @@ use advent_of_code_lib::{self, Solver};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
-use rayon::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2022", "16")
@@ -26,7 +25,7 @@ struct Day;
 struct Valve<'a> {
     valve_name: &'a str,
     connected_valves: Vec<&'a str>,
-    flow_value: usize,
+    flow_value: u32,
 }
 
 fn bfs_sp<'a>(grid: &Vec<Valve<'a>>, start_position: &'a str, goal: &str) -> Vec<&'a str> {
@@ -58,18 +57,18 @@ fn bfs_sp<'a>(grid: &Vec<Valve<'a>>, start_position: &'a str, goal: &str) -> Vec
 }
 
 fn dfs(
-    valves: &HashMap<usize, (usize, Vec<usize>)>,
-    distance: &HashMap<(usize, usize), usize>,
-    position: usize,
+    valves: &HashMap<u32, (u32, Vec<u32>)>,
+    distance: &HashMap<(u32, u32), u32>,
+    position: u32,
     mut opened: u16,
-    minutes: isize,
-) -> usize {
+    minutes: i32,
+) -> u32 {
     if minutes <= 0 {
         return 0;
     }
     opened = opened | 1 << position;
     let (flow_rate, neighbours) = &valves[&position];
-    let total_release = flow_rate * minutes as usize;
+    let total_release = flow_rate * minutes as u32;
     neighbours
         .iter()
         .filter(|neighbour| opened >> *neighbour & 1 == 0)
@@ -79,7 +78,7 @@ fn dfs(
                 distance,
                 *neighbour,
                 opened,
-                minutes - distance[&(position, *neighbour)] as isize - 1, // distance for travel - 1 for
+                minutes - distance[&(position, *neighbour)] as i32 - 1, // distance for travel - 1 for
                                                                           // openning it.
             ) + total_release
         })
@@ -91,16 +90,16 @@ fn dfs(
 // valve.
 
 fn select_next(
-    valves: &HashMap<usize, (usize, Vec<usize>)>,
-    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
-    distance: &HashMap<(usize, usize), usize>,
-    h_position: usize,
-    h_progress: isize,
-    e_position: usize,
-    e_progress: isize,
+    valves: &HashMap<u32, (u32, Vec<u32>)>,
+    // cache: &mut HashMap<(u32, i32, u32, i32, u16, i32), u32>,
+    distance: &HashMap<(u32, u32), u32>,
+    h_position: u32,
+    h_progress: i32,
+    e_position: u32,
+    e_progress: i32,
     opened: u16,
-    minutes: isize,
-) -> usize {
+    minutes: i32,
+) -> u32 {
     // if let Some(r) = cache.get(&(
     //     h_position, h_progress, e_position, e_progress, opened, minutes,
     // )) {
@@ -153,25 +152,25 @@ fn select_next(
 }
 
 fn human_open(
-    valves: &HashMap<usize, (usize, Vec<usize>)>,
-    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
-    distance: &HashMap<(usize, usize), usize>,
-    h_position: usize,
-    e_position: usize,
-    e_progress: isize,
+    valves: &HashMap<u32, (u32, Vec<u32>)>,
+    // cache: &mut HashMap<(u32, i32, u32, i32, u16, i32), u32>,
+    distance: &HashMap<(u32, u32), u32>,
+    h_position: u32,
+    e_position: u32,
+    e_progress: i32,
     mut opened: u16,
-    minutes: isize,
-) -> usize {
-    if minutes <= 0 {
+    minutes: i32,
+) -> u32 {
+    if minutes <= 0 || (0..valves.len()).map(|f| 1 << f).sum::<u16>() == opened {
         return 0;
     }
-    let total_release = valves[&h_position].0 * (minutes - 1) as usize;
+    let total_release = valves[&h_position].0 * (minutes - 1) as u32;
     opened = opened | 1 << h_position;
     valves
         .keys()
         .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != e_position)
         .map(|neighbour| {
-            let h_progress = distance[&(h_position, *neighbour)] as isize;
+            let h_progress = distance[&(h_position, *neighbour)] as i32;
             select_next(
                 valves,
                 // cache,
@@ -190,19 +189,19 @@ fn human_open(
 }
 
 fn both_open(
-    valves: &HashMap<usize, (usize, Vec<usize>)>,
-    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
-    distance: &HashMap<(usize, usize), usize>,
-    h_position: usize,
-    e_position: usize,
+    valves: &HashMap<u32, (u32, Vec<u32>)>,
+    // cache: &mut HashMap<(u32, i32, u32, i32, u16, i32), u32>,
+    distance: &HashMap<(u32, u32), u32>,
+    h_position: u32,
+    e_position: u32,
     mut opened: u16,
-    minutes: isize,
-) -> usize {
-    if minutes <= 0 {
+    minutes: i32,
+) -> u32 {
+    if minutes <= 0 || (0..valves.len()).map(|f| 1 << f).sum::<u16>() == opened {
         return 0;
     }
-    let total_release = valves[&h_position].0 * (minutes - 1) as usize
-        + valves[&e_position].0 * (minutes - 1) as usize;
+    let total_release = valves[&h_position].0 * (minutes - 1) as u32
+        + valves[&e_position].0 * (minutes - 1) as u32;
     opened = opened | 1 << h_position;
     opened = opened | 1 << e_position;
     valves
@@ -212,8 +211,8 @@ fn both_open(
         .map(|neighbours| {
             let h_neighbour = neighbours[0];
             let e_neighbour = neighbours[1];
-            let h_progress = distance[&(h_position, *h_neighbour)] as isize;
-            let e_progress = distance[&(e_position, *e_neighbour)] as isize;
+            let h_progress = distance[&(h_position, *h_neighbour)] as i32;
+            let e_progress = distance[&(e_position, *e_neighbour)] as i32;
             select_next(
                 valves,
                 // cache,
@@ -232,26 +231,25 @@ fn both_open(
 }
 
 fn elephant_open(
-    valves: &HashMap<usize, (usize, Vec<usize>)>,
-    // cache: &mut HashMap<(usize, isize, usize, isize, u16, isize), usize>,
-    distance: &HashMap<(usize, usize), usize>,
-    h_position: usize,
-    h_progress: isize,
-    e_position: usize,
+    valves: &HashMap<u32, (u32, Vec<u32>)>,
+    // cache: &mut HashMap<(u32, i32, u32, i32, u16, i32), u32>,
+    distance: &HashMap<(u32, u32), u32>,
+    h_position: u32,
+    h_progress: i32,
+    e_position: u32,
     mut opened: u16,
-    minutes: isize,
-) -> usize {
-    if minutes <= 0 {
+    minutes: i32,
+) -> u32 {
+    if minutes <= 0 || (0..valves.len()).map(|f| 1 << f).sum::<u16>() == opened {
         return 0;
     }
-    let total_release = valves[&e_position].0 * (minutes - 1) as usize;
+    let total_release = valves[&e_position].0 * (minutes - 1) as u32;
     opened = opened | 1 << e_position;
     valves
         .keys()
-        .par_bridge()
         .filter(|neighbour| opened >> *neighbour & 1 == 0 && **neighbour != h_position)
         .map(|neighbour| {
-            let e_progress = distance[&(e_position, *neighbour)] as isize;
+            let e_progress = distance[&(e_position, *neighbour)] as i32;
             select_next(
                 valves,
                 // cache,
@@ -277,7 +275,7 @@ impl Solver for Day {
                 println!("{}", f);
                 let captures = VALVE_REGEX.captures(f).unwrap();
                 let valve_name = captures.get(1).unwrap().as_str();
-                let flow_value = captures.get(2).unwrap().as_str().parse().unwrap();
+                let flow_value = captures.get(2).unwrap().as_str().parse::<u32>().unwrap();
                 let connected_valves = captures.get(3).unwrap().as_str().split(", ").collect_vec();
                 Valve {
                     flow_value,
@@ -299,8 +297,8 @@ impl Solver for Day {
         for x in 0..valid_valves.len() {
             for y in 0..valid_valves.len() {
                 distances.insert(
-                    (x, y),
-                    bfs_sp(&grid, valid_valves[x], valid_valves[y]).len() - 1,
+                    (x as u32, y as u32),
+                    (bfs_sp(&grid, valid_valves[x], valid_valves[y]).len() - 1) as u32,
                 );
             }
             let valve = grid
@@ -308,10 +306,10 @@ impl Solver for Day {
                 .find(|f| f.valve_name == valid_valves[x])
                 .unwrap();
             valves.insert(
-                x,
+                x as u32,
                 (
                     valve.flow_value,
-                    (0..valid_valves.len()).filter(|f| *f != x).collect_vec(),
+                    (0..valid_valves.len()).filter(|f| *f != x).map(|f| f as u32).collect_vec(),
                 ),
             );
         }
@@ -347,8 +345,8 @@ impl Solver for Day {
         for x in 0..valid_valves.len() {
             for y in 0..valid_valves.len() {
                 distance.insert(
-                    (x, y),
-                    bfs_sp(&grid, valid_valves[x], valid_valves[y]).len() - 1,
+                    (x as u32, y as u32),
+                    (bfs_sp(&grid, valid_valves[x], valid_valves[y]).len() - 1) as u32,
                 );
             }
             let valve = grid
@@ -356,10 +354,10 @@ impl Solver for Day {
                 .find(|f| f.valve_name == valid_valves[x])
                 .unwrap();
             valves.insert(
-                x,
+                x as u32,
                 (
                     valve.flow_value,
-                    (0..valid_valves.len()).filter(|f| *f != x).collect_vec(),
+                    (0..valid_valves.len()).filter(|f| *f != x).map(|f| f as u32).collect_vec(),
                 ),
             );
         }
@@ -373,8 +371,8 @@ impl Solver for Day {
             .map(|neighbours| {
                 let h_neighbour = neighbours[0];
                 let e_neighbour = neighbours[1];
-                let h_progress = distance[&(0, *h_neighbour)] as isize;
-                let e_progress = distance[&(0, *e_neighbour)] as isize;
+                let h_progress = distance[&(0, *h_neighbour)] as i32;
+                let e_progress = distance[&(0, *e_neighbour)] as i32;
                 // if *h_neighbour == valid_valves.iter().position(|&f| f == "JJ").unwrap()
                 //     && *e_neighbour == valid_valves.iter().position(|&f| f == "DD").unwrap()
                 // {

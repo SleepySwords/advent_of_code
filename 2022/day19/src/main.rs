@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashSet, VecDeque},
     error::Error,
 };
 
@@ -48,6 +48,11 @@ impl Blueprint {
             return self.geode_cost;
         }
         unreachable!()
+    }
+
+    fn max_robots(&self, id: usize) -> u16 {
+        if id == 3 { return u16::MAX }
+        self.ore_cost[id].max(self.clay_cost[id]).max(self.obsidian_cost[id]).max(self.geode_cost[id])
     }
 }
 
@@ -143,6 +148,7 @@ fn turn(
         // breaks of that pathway. (minutes * max geode ore can get) is less than max.
         for s in (0..4)
             .filter(|&ore| skip_build >> ore & 1 == 0 && can_purchase(&blueprint.cost(ore as u16), &resources))
+            .filter(|&ore| blueprint.max_robots(ore) > robots[ore]) // Credit to https://nickymeuleman.netlify.app/garden/aoc2022-day19/ for this optimisation (speeds up a ton)
             .map(|ore| {
                 let resources = purchase(&blueprint.cost(ore as u16), &resources_after_mined);
                 let mut new_robots = robots;

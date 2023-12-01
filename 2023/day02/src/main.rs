@@ -3,7 +3,7 @@ use std::error::Error;
 use advent_of_code_lib::{self, Solver};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    advent_of_code_lib::run_and_print(Day, "2023", "-")
+    advent_of_code_lib::run_and_print(Day, "2023", "2")
 }
 
 struct Day;

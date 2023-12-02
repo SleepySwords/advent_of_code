@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use advent_of_code_lib::{self, Solver};
-use regex::Regex;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2023", "2")
@@ -62,25 +61,20 @@ impl Solver for Day {
                 let sets = split.next().unwrap().split("; ");
                 let (red, green, blue) = sets.fold((0, 0, 0), |(red, green, blue), st| {
                     let balls = st.split(", ");
-                    let (r, g, b) = balls.fold((0, 0, 0), |(mut red, mut green, mut blue), ball| {
-                        let mut comp = ball.split(" ");
-                        let num = comp.next().unwrap().parse::<u32>().unwrap();
-                        let colour = comp.next().unwrap();
+                    let (r, g, b) =
+                        balls.fold((0, 0, 0), |(mut red, mut green, mut blue), ball| {
+                            let mut comp = ball.split(" ");
+                            let num = comp.next().unwrap().parse::<u32>().unwrap();
+                            let colour = comp.next().unwrap();
 
-                        if colour == "red" && num > red {
-                            red = num;
-                        }
-
-                        if colour == "green" && num > green {
-                            green = num;
-                        }
-
-                        if colour == "blue" && num > blue {
-                            blue = num;
-                        }
-
-                        return (red, green, blue);
-                    });
+                            match colour {
+                                "red" => red = red.max(num),
+                                "green" => green = green.max(num),
+                                "blue" => blue = blue.max(num),
+                                _ => panic!("Invalid state"),
+                            }
+                            return (red, green, blue);
+                        });
 
                     return (red.max(r), green.max(g), blue.max(b));
                 });

@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use advent_of_code_lib::{self, Solver};
+use regex::Regex;
 
 fn main() -> Result<(), Box<dyn Error>> {
     advent_of_code_lib::run_and_print(Day, "2023", "2")
@@ -12,17 +13,80 @@ impl Solver for Day {
     fn part1(&self, input: &str) -> String {
         input
             .lines()
-            .map(|f| f.parse().unwrap())
-            .fold((0, i32::MAX), |(mut acc, prev), inp| {
-                if inp > prev {
-                    acc += 1
+            .filter_map(|f| {
+                let mut split = f.split(": ");
+                let id = split
+                    .next()
+                    .unwrap()
+                    .replace("Game ", "")
+                    .parse::<u32>()
+                    .unwrap();
+
+                let sets = split.next().unwrap().split("; ");
+                for st in sets {
+                    let balls = st.split(", ");
+                    for ball in balls {
+                        let mut comp = ball.split(" ");
+                        let num = comp.next().unwrap().parse::<u32>().unwrap();
+                        let colour = comp.next().unwrap();
+
+                        if colour == "red" && num > 12 {
+                            return None;
+                        }
+                        if colour == "green" && num > 13 {
+                            return None;
+                        }
+                        if colour == "blue" && num > 14 {
+                            return None;
+                        }
+                    }
                 }
-                (acc, inp)
+                return Some(id);
             })
-            .0
+            .sum::<u32>()
             .to_string()
     }
 
-    // fn part2(&self, input: &str) -> String {
-    // }
+    fn part2(&self, input: &str) -> String {
+        input
+            .lines()
+            .filter_map(|f| {
+                let mut split = f.split(": ");
+                split
+                    .next()
+                    .unwrap()
+                    .replace("Game ", "")
+                    .parse::<u32>()
+                    .unwrap();
+
+                let sets = split.next().unwrap().split("; ");
+                let (red, green, blue) = sets.fold((0, 0, 0), |(red, green, blue), st| {
+                    let balls = st.split(", ");
+                    let (r, g, b) = balls.fold((0, 0, 0), |(mut red, mut green, mut blue), ball| {
+                        let mut comp = ball.split(" ");
+                        let num = comp.next().unwrap().parse::<u32>().unwrap();
+                        let colour = comp.next().unwrap();
+
+                        if colour == "red" && num > red {
+                            red = num;
+                        }
+
+                        if colour == "green" && num > green {
+                            green = num;
+                        }
+
+                        if colour == "blue" && num > blue {
+                            blue = num;
+                        }
+
+                        return (red, green, blue);
+                    });
+
+                    return (red.max(r), green.max(g), blue.max(b));
+                });
+                return Some(red * green * blue);
+            })
+            .sum::<u32>()
+            .to_string()
+    }
 }

@@ -2,8 +2,6 @@ module Main where
 
 import Data.Char (isSpace)
 import Data.List.Split (splitOn)
-import Data.List (elemIndex)
-import Data.Maybe (fromJust)
 
 parseCard :: String -> (Int, ([Int], [Int]))
 parseCard a = (read (dropWhile isSpace (drop 4 (head splits))), parseWinnning (last splits))
@@ -24,37 +22,34 @@ splitCards st = fst splits : splitCards (snd splits)
 parseFraction :: (String, String) -> (Int, String)
 parseFraction (a, b) = (read (dropWhile isSpace a), b)
 
-matches :: ([Int], [Int]) -> Int
-matches (winning, has) = length (filter (fil winning) has)
+findNumberWinningCards :: ([Int], [Int]) -> Int
+findNumberWinningCards (winning, has) = length (filter (`elem` winning) has)
 
-fil :: [Int] -> Int -> Bool
-fil arr el = el `elem` arr
-
-findPoints :: Int -> Int
-findPoints 0 = 0
-findPoints a = 2 ^ (a - 1)
+convertPoints :: Int -> Int
+convertPoints 0 = 0
+convertPoints a = 2 ^ (a - 1)
 
 part1 :: IO ()
 part1 = do
   contents <- readFile "inputs/main.input"
-  print (sum (map (findPoints . (matches . snd) . parseCard) (lines contents)))
+  print ("Part 1: " ++ show (sum (map (convertPoints . (findNumberWinningCards . snd) . parseCard) (lines contents))))
 
-calculatePart2 :: [Int] -> [Int] -> Int -> [Int]
-calculatePart2 toAdd curr index
-  | index == length curr = curr
-  | otherwise = calculatePart2 toAdd c (index + 1)
-  where c = [addOffset toAdd curr index x | x <- [0..length curr - 1]]
+calculateCopiesList :: [Int] -> [Int] -> Int -> [Int]
+calculateCopiesList cardsWonList numberOfCardsList index
+  | index == length numberOfCardsList = numberOfCardsList
+  | otherwise = calculateCopiesList cardsWonList c (index + 1)
+  where c = [addOffset cardsWonList numberOfCardsList index x | x <- [0..length numberOfCardsList - 1]]
 
 addOffset :: [Int] -> [Int] -> Int -> Int -> Int
-addOffset toAdd curr index findIndex = if index < findIndex && (index + toAdd!!index) >= findIndex
-    then curr!!findIndex + curr!!index
-    else curr!!findIndex
+addOffset cardsWonList numberOfCardsList index findIndex = if index < findIndex && (index + cardsWonList!!index) >= findIndex
+    then numberOfCardsList!!findIndex + numberOfCardsList!!index
+    else numberOfCardsList!!findIndex
 
 part2 :: IO ()
 part2 = do
   contents <- readFile "inputs/main.input"
-  let toAdd = map ((matches . snd) . parseCard) (lines contents)
-  print (sum (calculatePart2 toAdd [1 | _ <- [0 .. length toAdd - 1]] 0))
+  let cardsWonList = map ((findNumberWinningCards . snd) . parseCard) (lines contents)
+  print ("Part 2: " ++ show(sum (calculateCopiesList cardsWonList [1 | _ <- [0 .. length cardsWonList - 1]] 0)))
 
 main :: IO ()
 main = do

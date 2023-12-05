@@ -44,16 +44,6 @@ part2 = do
   let value = head (filter (inRanges ranges) (map (applyMaps m) [0 ..]))
   putStrLn $ "Part 2: " ++ show (applyMaps maps value)
 
-merge :: [(Int, Int)] -> (Int, Int) -> [(Int, Int)]
-merge [] v = [v]
-merge arr v = filter (canMerge v) arr
-
-canMerge :: (Int, Int) -> (Int, Int) -> Bool
-canMerge (lo1, hi1) (lo2, hi2)
-  | hi1 >= lo2 && lo1 < hi2 = True
-  | hi1 <= lo2 && lo2 > hi1 = True
-  | otherwise = False
-
 applyMaps :: [[(Int, Int, Int)]] -> Int -> Int
 applyMaps [] value = value
 applyMaps arr value = applyMaps (tail arr) $ transform (head arr) value

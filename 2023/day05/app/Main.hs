@@ -2,6 +2,7 @@ module Main where
 
 import Data.List.Split (splitOn)
 import Data.List (nub)
+import Data.Range ((+=*), inRange, inRanges)
 
 main :: IO ()
 main = do
@@ -26,8 +27,6 @@ part1 = do
   let seeds = parseSeed $ head splits
   let maps = map (map parseMap . tail . lines) $ tail splits
 
-  print maps
-
   print $ minimum $ map (applyMaps maps) seeds
 
 part2 :: IO ()
@@ -37,20 +36,15 @@ part2 = do
   let seeds = parseSeedPairs $ head splits
   let maps = map (map parseMap . tail . lines) $ tail splits
 
-  print seeds
+  let m = reverse $ map (map reverseTransformation) maps
 
+  let ranges = concat [[seed +=* (seed + offset)] | (seed, offset) <- seeds]
 
-  print $ minimum $ map (applyMaps maps) $ concat [[seed .. (seed + offset - 1)] | (seed, offset) <- seeds]
-
--- mergeRanges :: [(Int, Int)] -> [(Int, Int)]
--- mergeRanges (lo1,hi1):(lo2,hi2):rest
---     | hi1 == lo2 = mergeRanges ((lo1,hi2) : rest) 
---              -- or (lo1,hi2) : mergeRanges rest, to merge only adjacent ranges
--- mergeRanges (interval:rest) = interval : mergeRanges rest
--- mergeRanges [] = []
+  let value =  head (filter (inRanges ranges) (map (applyMaps m) [0..]))
+  print $ applyMaps maps value
 
 merge :: [(Int, Int)] -> (Int, Int) -> [(Int, Int)]
-merge [] v = [v] 
+merge [] v = [v]
 merge arr v = filter (canMerge v) arr
 
 canMerge :: (Int, Int) -> (Int, Int) -> Bool

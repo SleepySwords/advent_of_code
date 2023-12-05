@@ -43,7 +43,7 @@ fn parse(input: &str) -> Vec<usize> {
         })
         .collect::<Vec<usize>>();
 
-    return number_matches
+    return number_matches;
 }
 
 impl Solver for Day {

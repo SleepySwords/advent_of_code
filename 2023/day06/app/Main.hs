@@ -31,8 +31,9 @@ distance :: Int -> Int -> Int
 distance maxTime holdTime = (maxTime - holdTime) * holdTime
 
 findTries :: (Int, Int) -> Int
-findTries (maxTime, dist) =  floor (fst quadrat) - ceiling (snd quadrat) + 1
-  where quadrat = quadratic (-(1.0 :: Double)) (fromIntegral maxTime) (fromIntegral (-dist))
+findTries (maxTime, dist) = floor (uncurry max quadrat) - ceiling (uncurry min quadrat) + 1
+  where
+    quadrat = quadratic (-(1.0 :: Double)) (fromIntegral maxTime) (fromIntegral (-dist))
 
-quadratic :: Floating a => a -> a -> a -> (a, a)
+quadratic :: (Floating a) => a -> a -> a -> (a, a)
 quadratic a b c = ((-b - sqrt (b * b - 4 * a * c)) / 2 * a, (-b + sqrt (b * b - 4 * a * c)) / 2 * a)

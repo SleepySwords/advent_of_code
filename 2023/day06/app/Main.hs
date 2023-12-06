@@ -10,17 +10,16 @@ part1 = do
   contents <- readFile "inputs/main.input"
   let (time, dist) = let splits = map words $ lines contents in (map read $ tail $ head splits, map read $ tail $ last splits) :: ([Int], [Int])
 
-  let records = [(time!!x, dist!!x) | x <- [0..length time - 1]]
+  let records = [(time !! x, dist !! x) | x <- [0 .. length time - 1]]
 
-  putStrLn $ "Part 1: " ++ show (product (map (`numberTries` 0) records))
+  putStrLn $ "Part 1: " ++ show (product (map findTries records))
 
 part2 :: IO ()
 part2 = do
   contents <- readFile "inputs/main.input"
   let (time, dist) = let splits = map words $ lines contents in (read $ concat $ tail $ head splits, read $ concat $ tail $ last splits) :: (Int, Int)
 
-  putStrLn $ "Part 2: " ++ show (numberTries (time, dist) 0)
-
+  putStrLn $ "Part 2: " ++ show (findTries (time, dist))
 
 numberTries :: (Int, Int) -> Int -> Int
 numberTries (maxTime, dist) holdTime
@@ -30,3 +29,10 @@ numberTries (maxTime, dist) holdTime
 
 distance :: Int -> Int -> Int
 distance maxTime holdTime = (maxTime - holdTime) * holdTime
+
+findTries :: (Int, Int) -> Int
+findTries (maxTime, dist) =  floor (fst quadrat) - ceiling (snd quadrat) + 1
+  where quadrat = quadratic (-(1.0 :: Double)) (fromIntegral maxTime) (fromIntegral (-dist))
+
+quadratic :: Floating a => a -> a -> a -> (a, a)
+quadratic a b c = ((-b - sqrt (b * b - 4 * a * c)) / 2 * a, (-b + sqrt (b * b - 4 * a * c)) / 2 * a)

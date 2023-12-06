@@ -9,7 +9,7 @@ This repo contains directory that could potentially be Rust or Haskell.
 | 03  | ✅        | ❌        |
 | 04  | ✅        | ✅        |
 | 05  | ❌        | ✅        |
-| 06  | Not done | Not done |
+| 06  | ❌        | ✅        |
 | 07  | Not done | Not done |
 | 08  | Not done | Not done |
 | 09  | Not done | Not done |

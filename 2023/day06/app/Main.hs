@@ -36,4 +36,5 @@ findTries (maxTime, dist) = floor (uncurry max quadrat) - ceiling (uncurry min q
     quadrat = quadratic (-(1.0 :: Double)) (fromIntegral maxTime) (fromIntegral (-dist))
 
 quadratic :: (Floating a) => a -> a -> a -> (a, a)
-quadratic a b c = ((-b - sqrt (b * b - 4 * a * c)) / 2 * a, (-b + sqrt (b * b - 4 * a * c)) / 2 * a)
+quadratic a b c = ((-b - discrim) / 2 * a, (-b + discrim) / 2 * a)
+  where discrim = sqrt (b * b - 4 * a * c)

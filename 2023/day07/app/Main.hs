@@ -13,15 +13,15 @@ main = do
 part1 :: [[String]] -> IO ()
 part1 bets = do
   let sorted = sortBy (compareBidsPart1 `on` head) bets
-  print $ addValues sorted
+  putStrLn $ "Part 1: " ++ show (addValues sorted)
 
 part2 :: [[String]] -> IO ()
 part2 bets = do
   let sorted = sortBy (compareBidsPart2 `on` head) bets
-  print $ addValues sorted
+  putStrLn $ "Part 2: " ++ show (addValues sorted)
 
 addValues :: [[String]] -> Int
-addValues sorted = sum [read (last (sorted !! x)) * (x + 1) | x <- [0 .. length sorted - 1]]
+addValues sorted = sum [read (last v) * (i + 1) | (i, v) <- zip [0..] sorted]
 
 compareBidsPart1 :: String -> String -> Ordering
 compareBidsPart1 fstC sndC =

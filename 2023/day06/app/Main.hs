@@ -10,7 +10,7 @@ part1 = do
   contents <- readFile "inputs/main.input"
   let (time, dist) = let splits = map words $ lines contents in (map read $ tail $ head splits, map read $ tail $ last splits) :: ([Int], [Int])
 
-  let records = [(time !! x, dist !! x) | x <- [0 .. length time - 1]]
+  let records = zip time dist
 
   putStrLn $ "Part 1: " ++ show (product (map findTries records))
 

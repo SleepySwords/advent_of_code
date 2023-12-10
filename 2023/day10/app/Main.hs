@@ -1,14 +1,13 @@
 -- import Data.HashMap (HashSet, empty, insert, member, unions)
 
 import Data.HashMap.Internal.Strict (HashMap)
-import Data.HashMap.Strict (HashMap, empty, insert, member, (!))
-import Data.List (elemIndex)
-import Data.Maybe (fromJust, mapMaybe)
-import Debug.Trace (trace)
+import Data.HashMap.Strict (empty, insert, member, (!))
+import Data.List (elemIndex, sort)
+import Data.Maybe (fromJust, isJust, mapMaybe)
 
 data Tile = Ground | Vert | Horiz | NE | NW | SW | SE | G | S deriving (Enum, Show, Eq, Bounded)
 
-data Direction = Up | Down | Lft | Rght deriving (Enum, Show, Eq, Bounded)
+data Direction = Down | Up | Lft | Rght deriving (Enum, Show, Eq, Bounded, Ord)
 
 parse :: String -> ([[Tile]], (Int, Int))
 parse str = (mp, findIndex mp)
@@ -48,16 +47,16 @@ printType ch
 -- stuf arr =
 
 canTravel :: Direction -> Tile -> Tile -> Bool
-canTravel dir tilePrev tileTravel = case dir of
-  Up -> (tileTravel == Vert || tileTravel == NE || tileTravel == NW || tileTravel == S) && (tilePrev == Vert || tilePrev == SE || tilePrev == SW || tilePrev == S)
-  Down -> (tileTravel == Vert || tileTravel == SE || tileTravel == SW || tileTravel == S) && (tilePrev == Vert || tilePrev == NE || tilePrev == NW || tilePrev == S)
-  Lft -> (tileTravel == Horiz || tileTravel == SE || tileTravel == NE || tileTravel == S) && (tilePrev == Horiz || tilePrev == SW || tilePrev == NW || tilePrev == S)
-  Rght -> (tileTravel == Horiz || tileTravel == SW || tileTravel == NW || tileTravel == S) && (tilePrev == Horiz || tilePrev == SE || tilePrev == NE || tilePrev == S)
+canTravel dir prevTile tile = case dir of
+  Up -> (tile == Vert || tile == SE || tile == SW || tile == S) && (prevTile == Vert || prevTile == NE || prevTile == NW || prevTile == S)
+  Down -> (tile == Vert || tile == NE || tile == NW || tile == S) && (prevTile == Vert || prevTile == SE || prevTile == SW || prevTile == S)
+  Lft -> (tile == Horiz || tile == SE || tile == NE || tile == S) && (prevTile == Horiz || prevTile == SW || prevTile == NW || prevTile == S)
+  Rght -> (tile == Horiz || tile == SW || tile == NW || tile == S) && (prevTile == Horiz || prevTile == SE || prevTile == NE || prevTile == S)
 
 travel :: (Int, Int) -> Direction -> (Int, Int)
 travel (x, y) dir = case dir of
-  Up -> (x, y + 1)
-  Down -> (x, y - 1)
+  Up -> (x, y - 1)
+  Down -> (x, y + 1)
   Lft -> (x - 1, y)
   Rght -> (x + 1, y)
 
@@ -70,76 +69,76 @@ getTile mp (x, y) =
 dfs :: [[Tile]] -> Bool -> (Int, Int) -> (Int, Int) -> Maybe Int
 dfs mp firstRun pos prev_pos
   | currentTile == S && not firstRun = Just 0
-  | null possibleTiles = Nothing `debug` (show possibleTiles ++ " " ++ show pos)
-  | null newTiles = Nothing `debug` (show possibleTiles ++ " " ++ show pos)
-  | otherwise = Just (head newTiles + 1) `debug` (show possibleTiles ++ " " ++ show pos)
+  | null possibleTiles = Nothing
+  | null newTiles = Nothing
+  | otherwise = Just (head newTiles + 1)
   where
     currentTile = fromJust (getTile mp pos)
-    possibleTiles = filter (\(d, newPos, tile) -> canTravel d currentTile tile && newPos /= prev_pos) (mapMaybe (mapTravel mp pos) [minBound .. maxBound])
+    possibleTiles = filter (\(d, newPos, tile) -> canTravel d currentTile tile && newPos /= prev_pos) (mapMaybe (mapFunc mp pos) [minBound .. maxBound])
     newTiles = mapMaybe (\(_, newPos, _) -> dfs mp False newPos pos) possibleTiles
 
 dfsP2 :: [[Tile]] -> HashMap (Int, Int) Tile -> Bool -> (Int, Int) -> (Int, Int) -> HashMap (Int, Int) Tile
-dfsP2 mp tiles firstRun pos prev_pos
+dfsP2 mp tiles firstRun pos prevPos
   | currentTile == S && not firstRun = insert pos currentTile tiles
-  | null possibleTiles = tiles `debug` (show possibleTiles ++ " " ++ show pos)
-  | null newTiles = tiles `debug` (show possibleTiles ++ " " ++ show pos)
-  | otherwise = insert pos currentTile (head newTiles) `debug` (show possibleTiles ++ " " ++ show pos)
+  | null possibleTiles = tiles
+  | null newTiles = tiles
+  | otherwise = insert pos currentTile (head newTiles)
   where
     currentTile = fromJust (getTile mp pos)
-    possibleTiles = filter (\(d, newPos, tile) -> canTravel d currentTile tile && newPos /= prev_pos) (mapMaybe (mapTravel mp pos) [minBound .. maxBound])
+    validLocation (dir, newPos, newTile) = canTravel dir currentTile newTile && newPos /= prevPos -- newPos /= prev_pos prevents going back
+    tilesInBounds = mapMaybe (mapFunc mp pos) [minBound .. maxBound]
+    possibleTiles = filter validLocation tilesInBounds
     newTiles = map (\(_, newPos, _) -> dfsP2 mp tiles False newPos pos) possibleTiles
 
-debug = flip trace
-
-mapTravel :: [[Tile]] -> (Int, Int) -> Direction -> Maybe (Direction, (Int, Int), Tile)
-mapTravel mp pos dir = case getTile mp newPos of
-  Just a -> Just (dir, newPos, a)
+mapFunc :: [[Tile]] -> (Int, Int) -> Direction -> Maybe (Direction, (Int, Int), Tile)
+mapFunc mp pos dir = case getTile mp newPos of
+  Just tile -> Just (dir, newPos, tile)
   Nothing -> Nothing
   where
     newPos = travel pos dir
 
--- floodfill :: HashSet (Int, Int) -> HashSet (Int, Int) -> (Int, Int) -> (Int, Int) -> HashSet (Int, Int)
--- floodfill tiles found (width, height) (x, y)
---   | x < -1 || x > width = found
---   | y < -1 || y > height = found
---   | (x, y) `member` tiles = found
---   | (x, y) `member` found = found
---   | otherwise = unions (map (floodfill tiles ((x, y) `insert` found) (width, height)) (filter (`member` found) (map (travel (x, y)) [minBound .. maxBound])) `debug` show (x, y))
--- findType ch
---   | ch == '.' = Ground
---   | ch == '|' = Vert
---   | ch == '-' = Horiz
---   | ch == 'L' = NE
---   | ch == 'J' = NW
---   | ch == '7' = SW
---   | ch == 'F' = SE
---   | ch == 'S' = S
---   | otherwise = S
+determinS :: [[Tile]] -> (Int, Int) -> Tile
+determinS mp pos = case sort (map snd possibleTiles) of
+  [Down, Up] -> Vert
+  [Down, Lft] -> SW
+  [Down, Rght] -> SE
+  [Up, Lft] -> NW
+  [Up, Rght] -> NE
+  [Lft, Rght] -> Vert
+  _ -> Ground -- This should not be possible anyways
+  where
+    currentTile = fromJust (getTile mp pos)
+    possibleTiles = filter (\(tile, d) -> isJust tile && canTravel d currentTile (fromJust tile)) (map (\d -> (getTile mp (travel pos d), d)) [minBound .. maxBound])
 
 raycast :: HashMap (Int, Int) Tile -> Int -> Int -> Int -> Bool -> Tile -> Int
-raycast tiles y width x countInside lastNonHorizTile
+raycast tiles y width x isInside lastNonHorizTile
   | x >= width = 0
-  | (x, y) `member` tiles && tiles ! (x, y) == Vert = raycast tiles y width (x + 1) (not countInside) Vert
-  | (x, y) `member` tiles && tiles ! (x, y) == S = raycast tiles y width (x + 1) (not countInside) Vert -- This is specific to my input, the S acts like a vertical line.
-  | (x, y) `member` tiles && tiles ! (x, y) == Horiz = raycast tiles y width (x + 1) countInside lastNonHorizTile
+  | (x, y) `member` tiles && currentTile == Vert = flipBoundary currentTile
+  | (x, y) `member` tiles && currentTile == Horiz = doNotFlipBoundary lastNonHorizTile
   -- Always east to west
-  | (x, y) `member` tiles && lastNonHorizTile == SE && tiles ! (x, y) == NW = raycast tiles y width (x + 1) (not countInside) (tiles ! (x, y)) -- F J
-  | (x, y) `member` tiles && lastNonHorizTile == NE && tiles ! (x, y) == SW = raycast tiles y width (x + 1) (not countInside) (tiles ! (x, y)) -- L 7
-
-  | (x, y) `member` tiles && lastNonHorizTile == SE && tiles ! (x, y) == SW = raycast tiles y width (x + 1) countInside Vert -- F J
-  | (x, y) `member` tiles && lastNonHorizTile == NE && tiles ! (x, y) == NW = raycast tiles y width (x + 1) countInside Vert -- 
-  | (x, y) `member` tiles = raycast tiles y width (x + 1) countInside (tiles ! (x, y))
-
-  | countInside = raycast tiles y width (x + 1) countInside lastNonHorizTile + 1
-  | otherwise = raycast tiles y width (x + 1) countInside lastNonHorizTile
+  -- Still creates a line
+  | (x, y) `member` tiles && lastNonHorizTile == SE && currentTile == NW = flipBoundary currentTile -- F J
+  | (x, y) `member` tiles && lastNonHorizTile == NE && currentTile == SW = flipBoundary currentTile -- L 7
+  -- Does not create a line
+  | (x, y) `member` tiles && lastNonHorizTile == SE && currentTile == SW = doNotFlipBoundary currentTile -- F J
+  | (x, y) `member` tiles && lastNonHorizTile == NE && currentTile == NW = doNotFlipBoundary currentTile -- L J
+  | (x, y) `member` tiles = doNotFlipBoundary currentTile
+  -- Count if is inside
+  | isInside = doNotFlipBoundary lastNonHorizTile + 1
+  | otherwise = doNotFlipBoundary lastNonHorizTile
+  where
+    doNotFlipBoundary = raycast tiles y width (x + 1) isInside
+    flipBoundary = raycast tiles y width (x + 1) (not isInside)
+    currentTile = tiles ! (x, y)
 
 main :: IO ()
 main = do
   contents <- readFile "inputs/main.input"
   let (mp, start) = parse contents
   let tiles = dfsP2 mp empty True start start
-  print (length tiles `div` 2)
-  putStrLn (unlines [[if (x, y) `member` tiles then printType (tiles ! (x, y)) else '.' | x <- [0 .. length (head mp) - 1]] | y <- [0..length mp]])
-  print (sum [raycast tiles y (length (head mp)) 0 False Vert | y <- [0 .. (length mp - 1)]])
+  let sChar = determinS mp start
+  let updatedTiles = Data.HashMap.Strict.insert start sChar tiles
+  putStrLn (unlines [[if (x, y) `member` tiles then printType (updatedTiles ! (x, y)) else '.' | x <- [0 .. length (head mp) - 1]] | y <- [0 .. length mp]])
 
--- print (floodfill tiles Data.HashSet.empty (length (head mp), length mp) (-1, -1))
+  putStrLn ("Part 1:" ++ show (length tiles `div` 2))
+  putStrLn ("Part 2: " ++ show (sum [raycast updatedTiles y (length (head mp)) 0 False Vert | y <- [0 .. (length mp - 1)]]))

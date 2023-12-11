@@ -13,7 +13,7 @@ This repo contains directory that could potentially be Rust or Haskell.
 | 07  | ❌        | ✅        |
 | 08  | ❌        | ✅        |
 | 09  | ❌        | ✅        |
-| 10  | Not done | Not done |
+| 10  | ❌        | ✅        |
 | 11  | Not done | Not done |
 | 12  | Not done | Not done |
 | 13  | Not done | Not done |

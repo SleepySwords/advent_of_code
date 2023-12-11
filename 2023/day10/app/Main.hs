@@ -104,7 +104,7 @@ determinS mp pos = case sort (map snd possibleTiles) of
   [Down, Rght] -> SE
   [Up, Lft] -> NW
   [Up, Rght] -> NE
-  [Lft, Rght] -> Vert
+  [Lft, Rght] -> Horiz
   _ -> Ground -- This should not be possible anyways
   where
     currentTile = fromJust (getTile mp pos)
@@ -140,5 +140,5 @@ main = do
   let updatedTiles = Data.HashMap.Strict.insert start sChar tiles
   putStrLn (unlines [[if (x, y) `member` tiles then printType (updatedTiles ! (x, y)) else '.' | x <- [0 .. length (head mp) - 1]] | y <- [0 .. length mp]])
 
-  putStrLn ("Part 1:" ++ show (length tiles `div` 2))
+  putStrLn ("Part 1: " ++ show (length tiles `div` 2))
   putStrLn ("Part 2: " ++ show (sum [raycast updatedTiles y (length (head mp)) 0 False Vert | y <- [0 .. (length mp - 1)]]))

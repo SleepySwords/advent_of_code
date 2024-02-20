@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::error::Error;
 
 use advent_of_code_lib::{self, Solver};
 use itertools::Itertools;
@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Day;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Tile {
     Damaged,     // #
     Operational, // ?
@@ -35,7 +35,7 @@ fn parse_input(input: &str) -> (Vec<Tile>, Vec<usize>) {
 }
 
 impl Solver for Day {
-    fn part1(&self, _: &str) -> String {
+    fn part1(&self, input: &str) -> String {
         return String::from("Do haskell");
     }
 
@@ -66,14 +66,14 @@ impl Solver for Day {
                     field: &field,
                     condition: &condition,
                 };
-                state.next_step(&mut HashMap::new())
+                state.next_step()
             })
             .sum::<usize>()
             .to_string()
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy)]
 struct State<'a> {
     field_index: usize,
     condition_index: usize,
@@ -82,7 +82,7 @@ struct State<'a> {
     condition: &'a Vec<usize>,
 }
 
-impl <'a> State<'a> {
+impl State<'_> {
     pub fn current_tile(&self) -> Tile {
         return self.field[self.field_index];
     }
@@ -92,7 +92,7 @@ impl <'a> State<'a> {
     }
 
     // pub fn damaged(mut self, mut current: Vec<Tile>) -> usize {
-    pub fn damaged(mut self, seen: &mut HashMap<State<'a>, usize>) -> usize {
+    pub fn damaged(mut self) -> usize {
         // current.push(Tile::Damaged);
         if self.need_damaged() == self.damaged + 1 {
             // Ensure that the next is not damaged as well.
@@ -104,7 +104,7 @@ impl <'a> State<'a> {
                 self.condition_index += 1;
                 self.damaged = 0;
                 // return self.next_step(current);
-                return self.next_step(seen);
+                return self.next_step();
             } else {
             // println!("Bad: {}", self.field_index);
                 return 0;
@@ -113,12 +113,12 @@ impl <'a> State<'a> {
             self.damaged += 1;
             self.field_index += 1;
             // return self.next_step(current);
-            return self.next_step(seen);
+            return self.next_step();
         }
     }
 
     // pub fn operating(mut self, mut current: Vec<Tile>) -> usize {
-    pub fn operating(mut self, seen: &mut HashMap<State<'a>, usize>) -> usize {
+    pub fn operating(mut self) -> usize {
         // current.push(Tile::Operational);
         if self.damaged > 0 {
             // println!("Bad: {}", self.field_index);
@@ -126,12 +126,12 @@ impl <'a> State<'a> {
         }
         self.field_index += 1;
         // return self.next_step(current);
-        return self.next_step(seen);
+        return self.next_step();
     }
 
     // pub fn next_step(self, current: Vec<Tile>) -> usize {
-    pub fn next_step(self, seen: &mut HashMap<State<'a>, usize>) -> usize {
-        // println!("{}", self.field_index);
+    pub fn next_step(self) -> usize {
+        println!("{}", self.field_index);
         // println!(
         //     "Current: {} {} {:?} {} {}",
         //     self.field_index,
@@ -147,9 +147,6 @@ impl <'a> State<'a> {
         //     self.condition_index,
         //     self.condition.len(),
         // );
-        if seen.contains_key(&self) {
-            return *seen.get(&self).expect("???");
-        }
         if self.field_index >= self.field.len() && self.condition_index >= self.condition.len() {
             // println!("good!");
             return 1;
@@ -176,28 +173,23 @@ impl <'a> State<'a> {
             Tile::Damaged => {
                 // println!("Damaged: {}", self.field_index);
                 // return self.damaged(current);
-                let damaged = self.damaged(seen);
-                seen.insert(self, damaged);
-                return damaged;
+                return self.damaged();
             }
             Tile::Operational => {
                 // println!("Operating: {}", self.field_index);
                 // return self.operating(current);
-                let operating = self.operating(seen);
-                seen.insert(self, operating);
-                return operating;
+                return self.operating();
             }
             Tile::Unknown => {
                 // println!("Unknown damaged: {}", self.field_index);
-                let unknown = self.damaged(seen) + self.operating(seen);
+                let damaged = self.damaged();
                 // let damaged = self.damaged(current.clone());
                 // println!(
                 //     "Unknown operating: {}, found damaged {}",
                 //     self.field_index, damaged
                 // );
                 // return damaged + self.operating(current.clone());
-                seen.insert(self, unknown);
-                return unknown;
+                return damaged + self.operating();
             }
         }
     }

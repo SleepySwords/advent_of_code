@@ -19,7 +19,7 @@ pub fn main() !void {
     const ans_p1 = part1(list);
     std.debug.print("Part 1: {d}\n", .{ans_p1});
 
-    const ans_p2 = part2(list);
+    const ans_p2 = try part2(list);
     std.debug.print("Part 2: {d}\n", .{ans_p2});
 }
 
@@ -46,42 +46,50 @@ pub fn parse(allocator: std.mem.Allocator) !std.ArrayList(ArrayListU32) {
 pub fn part1(list: std.ArrayList(ArrayListU32)) usize {
     var total: usize = 0;
     for (list.items) |line| {
-        const increasing = line.items[0] < line.items[1];
-        var window_iterator = std.mem.window(u32, line.items, 2, 1);
-        var is_valid = true;
-
-        while (window_iterator.next()) |window| {
-            const window_increasing = window[0] < window[1];
-            const distance = if (window_increasing) window[1] - window[0] else window[0] - window[1];
-
-            if (window_increasing != increasing or 1 > distance or distance > 3) {
-                is_valid = false;
-                break;
-            }
-        }
-
-        if (is_valid) total += 1;
+        if (is_valid(&line) == null) total += 1;
     }
     return total;
 }
 
-pub fn part2(list: std.ArrayList(ArrayListU32)) usize {
-    var total: usize = 0;
-    for (list.items) |line| {
-        const increasing = line.items[0] < line.items[1];
-        var window_iterator = std.mem.window(u32, line.items, 2, 1);
-        var last_valid: usize = line.items[0];
+pub fn is_valid(list: *const ArrayListU32) ?usize {
+    const increasing = list.items[0] < list.items[1];
+    var window_iterator = std.mem.window(u32, list.items, 2, 1);
+    var invalid_pos: ?usize = null;
+    var index: usize = 0;
 
-        while (window_iterator.next()) |window| {
-            const window_increasing = window[0] < window[1];
-            const distance = if (window_increasing) window[1] - window[0] else window[0] - window[1];
+    while (window_iterator.next()) |window| {
+        const window_increasing = window[0] < window[1];
+        const distance = if (window_increasing) window[1] - window[0] else window[0] - window[1];
 
-            if (window_increasing != increasing or 1 > distance or distance > 3) {} else {
-                last_valid = window[1];
-            }
+        if (window_increasing != increasing or 1 > distance or distance > 3) {
+            // Either index or index + 1 is invalid.
+            invalid_pos = index;
+            break;
         }
 
-        if (last_valid <= 1) total += 1;
+        index += 1;
+    }
+
+    return invalid_pos;
+}
+
+pub fn part2(list: std.ArrayList(ArrayListU32)) error{OutOfMemory}!usize {
+    var total: usize = 0;
+    for (list.items) |*line| {
+        const last_valid = is_valid(line);
+        if (last_valid != null) {
+            for (0..2) |i| {
+                const removed = line.orderedRemove(last_valid.? + i);
+                if (is_valid(line) == null) {
+                    total += 1;
+                    try line.insert(last_valid.? + i, removed);
+                    break;
+                }
+                try line.insert(last_valid.? + i, removed);
+            }
+        } else {
+            total += 1;
+        }
     }
     return total;
 }

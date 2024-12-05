@@ -94,7 +94,7 @@ pub fn parse(allocator: std.mem.Allocator) !ParsedInput {
     var br = std.io.bufferedReader(stdin_file.reader());
     const stdin = br.reader();
 
-    var buf: [10000000]u8 = undefined;
+    var buf: [65_536]u8 = undefined;
     const size = try stdin.readAll(&buf);
 
     var input_itr = std.mem.split(u8, buf[0..size], "\n\n");

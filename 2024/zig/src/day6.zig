@@ -25,7 +25,7 @@ const ParsedInput = struct { tiles: []Tile, width: usize, length: usize, initial
 
 const GuardDirection = enum { North, East, South, West };
 
-const GuardPosition = struct { x: isize, y: isize };
+const GuardPosition = struct { x: usize, y: usize };
 
 const Guard = struct {
     position: GuardPosition,
@@ -53,9 +53,10 @@ pub fn part2(input: *ParsedInput, allocator: std.mem.Allocator) !usize {
         if (value.key_ptr.x != input.initial_pos.x or value.key_ptr.x != input.initial_pos.x) {
             var o = std.AutoHashMap(Guard, void).init(allocator);
             defer o.deinit();
-            input.tiles[cast(usize, value.key_ptr.x) + cast(usize, value.key_ptr.y) * input.width] = .Obstacle;
-            if (try check_time_loop(input, input.initial_pos, .North, &o)) count += 1;
-            input.tiles[cast(usize, value.key_ptr.x) + cast(usize, value.key_ptr.y) * input.width] = .Air;
+            input.tiles[value.key_ptr.x + value.key_ptr.y * input.width] = .Obstacle;
+            var guard_pos = input.initial_pos;
+            if (try check_time_loop(input, &guard_pos, .North, &o)) count += 1;
+            input.tiles[value.key_ptr.x + value.key_ptr.y * input.width] = .Air;
         }
     }
 
@@ -63,11 +64,11 @@ pub fn part2(input: *ParsedInput, allocator: std.mem.Allocator) !usize {
 }
 
 fn move_guard(input: *ParsedInput, position: GuardPosition, direction: GuardDirection, gone_to: *std.AutoHashMap(GuardPosition, void)) !void {
-    const new_position = move_direction(direction, position);
+    const new_position = move_direction(direction, &position);
     if (new_position.x < 0 or new_position.y < 0 or new_position.x >= input.width or new_position.y >= input.length) {
         return;
     }
-    const tile_to_move = input.tiles[cast(usize, new_position.x) + cast(usize, new_position.y) * input.width];
+    const tile_to_move = input.tiles[new_position.x + new_position.y * input.width];
     if (tile_to_move == .Obstacle) {
         try move_guard(input, position, rotate(direction), gone_to);
     } else {
@@ -76,8 +77,8 @@ fn move_guard(input: *ParsedInput, position: GuardPosition, direction: GuardDire
     }
 }
 
-fn check_time_loop(input: *ParsedInput, position: GuardPosition, direction: GuardDirection, gone_to: *std.AutoHashMap(Guard, void)) !bool {
-    const new_position = move_direction(direction, position);
+fn check_time_loop(input: *ParsedInput, position: *GuardPosition, direction: GuardDirection, gone_to: *std.AutoHashMap(Guard, void)) !bool {
+    var new_position = move_direction(direction, position);
 
     if (gone_to.contains(Guard{ .position = new_position, .direction = direction })) {
         return true;
@@ -85,7 +86,7 @@ fn check_time_loop(input: *ParsedInput, position: GuardPosition, direction: Guar
     if (new_position.x < 0 or new_position.y < 0 or new_position.x >= input.width or new_position.y >= input.length) {
         return false;
     }
-    const tile_to_move = input.tiles[cast(usize, new_position.x) + cast(usize, new_position.y) * input.width];
+    const tile_to_move = input.tiles[new_position.x + new_position.y * input.width];
     if (tile_to_move == .Obstacle) {
         return try check_time_loop(input, position, rotate(direction), gone_to);
     } else {
@@ -93,7 +94,7 @@ fn check_time_loop(input: *ParsedInput, position: GuardPosition, direction: Guar
             .position = new_position,
             .direction = direction,
         }, {});
-        return try check_time_loop(input, new_position, direction, gone_to);
+        return try check_time_loop(input, &new_position, direction, gone_to);
     }
 }
 
@@ -110,11 +111,11 @@ fn rotate(direction: GuardDirection) GuardDirection {
     };
 }
 
-fn move_direction(direction: GuardDirection, position: GuardPosition) GuardPosition {
+fn move_direction(direction: GuardDirection, position: *const GuardPosition) GuardPosition {
     switch (direction) {
         .North => return GuardPosition{
             .x = position.x,
-            .y = position.y - 1,
+            .y = position.y -% 1,
         },
         .South => return GuardPosition{
             .x = position.x,
@@ -125,7 +126,7 @@ fn move_direction(direction: GuardDirection, position: GuardPosition) GuardPosit
             .y = position.y,
         },
         .West => return GuardPosition{
-            .x = position.x - 1,
+            .x = position.x -% 1,
             .y = position.y,
         },
     }

@@ -27,9 +27,6 @@ const Game = struct { button_a: Pair, button_b: Pair, prize: Pair };
 
 const Input = struct { games: std.ArrayList(Game) };
 
-// a_x^a + b_x^b = prize_x
-// a_y^a + b_y^b = prize_y
-
 fn part1(input: *const Input) usize {
     var total: usize = 0;
     for (input.games.items) |game| {
@@ -102,6 +99,10 @@ fn find_s(game: *const Game) isize {
     return @divTrunc(numerator, denominator);
 }
 
+fn valid_solution(game: *const Game, s: usize, t: usize) bool {
+    return (game.button_a.x * s) + (game.button_b.x * t) == game.prize.x and (game.button_a.y * s) + (game.button_b.y * t) == game.prize.y;
+}
+
 fn part2(input: *const Input) usize {
     var total: usize = 0;
     for (input.games.items) |game| {
@@ -110,17 +111,13 @@ fn part2(input: *const Input) usize {
             .y = game.prize.y + 10000000000000,
         } };
 
-        std.debug.print("{}\n", .{find_t_2(&new_game)});
-
         const t = find_t_2(&new_game);
         const s = find_s(&new_game);
         if (t >= 0 and s >= 0) {
             const t_u: usize = @intCast(t);
             const s_u: usize = @intCast(s);
-            if ((new_game.button_a.x * s_u) + (new_game.button_b.x * t_u) == new_game.prize.x and (new_game.button_a.y * s_u) + (new_game.button_b.y * t_u) == new_game.prize.y) {
+            if (valid_solution(&new_game, s_u, t_u)) {
                 total += s_u * 3 + t_u;
-            } else {
-                std.debug.print("{} {} {} {} \n", .{ s_u, t_u, (new_game.button_a.x * s_u) + (new_game.button_b.x * t_u), (new_game.button_a.y * s_u) + (new_game.button_b.y * t_u) });
             }
         }
     }

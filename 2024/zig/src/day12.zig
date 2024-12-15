@@ -61,7 +61,7 @@ fn part1(input: *Input, allocator: std.mem.Allocator) !usize {
             if (visited.contains(current_location)) continue;
             try visited.put(current_location, {});
             const result = try floodfill(current_location, c, &input.farm, &visited);
-            std.debug.print("{} {} {} {}\n", .{ c, x, y, result });
+            // std.debug.print("{} {} {} {}\n", .{ c, x, y, result });
             total += result.area * result.perimeter;
         }
     }

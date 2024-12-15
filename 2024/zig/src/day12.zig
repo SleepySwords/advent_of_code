@@ -32,11 +32,18 @@ const Location = struct {
     fn inbounds(location: *const Location, farm: *const std.ArrayList(std.ArrayList(u8))) bool {
         return location.x < farm.items[0].items.len and location.y < farm.items.len;
     }
+
+    fn with_direction(self: Location, direction: Direction) OuterPerimeter {
+        return OuterPerimeter{ .location = self, .direction = direction };
+    }
 };
 
-// fn get(self: *const std.ArrayList(std.ArrayList(u8)), location: Location) {
-//
-// }
+fn get(self: *const std.ArrayList(std.ArrayList(u8)), location: Location) ?u8 {
+    if (location.inbounds(self)) {
+        return self.items[location.y].items[location.x];
+    }
+    return null;
+}
 
 const OuterPerimeter = struct {
     location: Location,
@@ -77,7 +84,7 @@ fn part2(input: *Input, allocator: std.mem.Allocator) !usize {
             try visited.put(current_location, {});
 
             const result = try floodfill_bfs(current_location, c, &input.farm, &visited, &found_outer_perimeter, allocator);
-            std.debug.print("{c} {} {} {}\n", .{ c, x, y, result });
+            // std.debug.print("{c} {} {} {}\n", .{ c, x, y, result });
             total += result.area * result.perimeter;
         }
     }
@@ -92,16 +99,14 @@ fn floodfill(current: Location, farm_id: u8, farm: *const std.ArrayList(std.Arra
     var area: usize = 1;
 
     for (all_directions) |dir| {
-        if (dir.move(current).inbounds(farm)) {
-            const location = dir.move(current);
-            if (farm.items[location.y].items[location.x] == farm_id and !visited.contains(location)) {
+        const location = dir.move(current);
+        if (get(farm, location) == farm_id) {
+            if (!visited.contains(location)) {
                 try visited.put(location, {});
                 const result = try floodfill(location, farm_id, farm, visited);
 
                 perimeter += result.perimeter;
                 area += result.area;
-            } else if (farm.items[location.y].items[location.x] != farm_id) {
-                perimeter += 1;
             }
         } else {
             perimeter += 1;
@@ -128,61 +133,33 @@ fn floodfill_bfs(init: Location, farm_id: u8, farm: *const std.ArrayList(std.Arr
 
         for (all_directions) |dir| {
             const location = dir.move(current);
-            if (location.inbounds(farm)) {
-                if (farm.items[location.y].items[location.x] == farm_id and !visited.contains(location)) {
+            if (get(farm, location) == farm_id) {
+                if (!visited.contains(location)) {
                     try visited.put(location, {});
                     // std.debug.print("Adding to workflow: {}", .{location});
                     try queue.append(location);
-                } else if (farm.items[location.y].items[location.x] != farm_id) {
-                    var add = true;
-                    for (all_directions) |d| {
-                        const new_loc = d.move(location);
-                        if (found_outer_perimeter.contains(OuterPerimeter{ .location = new_loc, .direction = dir })) {
-                            add = false;
-                        }
-                    }
-                    if (add) {
-                        std.debug.print("1 - {} {} {c} {c}\n", .{ location, dir, farm_id, farm.items[location.y].items[location.x] });
-                        perimeter += 1;
-                    }
-                    try found_outer_perimeter.put(OuterPerimeter{ .location = location, .direction = dir }, {});
-                    for (dir.neighbours()) |move_to| {
-                        var check_loc = current;
-                        while (check_loc.inbounds(farm) and farm.items[check_loc.y].items[check_loc.x] == farm_id) {
-                            const potential_connected = dir.move(check_loc);
-                            if (potential_connected.inbounds(farm) and farm.items[potential_connected.y].items[potential_connected.x] == farm_id) {
-                                break;
-                            }
-                            try found_outer_perimeter.put(OuterPerimeter{ .location = potential_connected, .direction = dir }, {});
-                            check_loc = move_to.move(check_loc);
-                        }
-                    }
                 }
             } else {
-                var add = true;
+                var new_edge = true;
                 for (all_directions) |d| {
                     const new_loc = d.move(location);
-                    if (found_outer_perimeter.contains(OuterPerimeter{ .location = new_loc, .direction = dir })) {
-                        add = false;
+                    if (found_outer_perimeter.contains(new_loc.with_direction(dir))) {
+                        new_edge = false;
                     }
                 }
-                if (add) {
-                    // var ite = found_outer_perimeter.iterator();
-                    // while (ite.next()) |a| {
-                    //     std.debug.print("{}\n", .{a.key_ptr});
-                    // }
-                    std.debug.print("2 - {} {}\n", .{ location, dir });
+                if (new_edge) {
                     perimeter += 1;
                 }
-                try found_outer_perimeter.put(OuterPerimeter{ .location = location, .direction = dir }, {});
+                try found_outer_perimeter.put(location.with_direction(dir), {});
                 for (dir.neighbours()) |move_to| {
                     var check_loc = current;
-                    while (check_loc.inbounds(farm) and farm.items[check_loc.y].items[check_loc.x] == farm_id) {
+                    while (get(farm, check_loc) == farm_id) {
                         const potential_connected = dir.move(check_loc);
-                        if (potential_connected.inbounds(farm) and farm.items[potential_connected.y].items[potential_connected.x] == farm_id) {
+                        // Not part of the same edge anymore.
+                        if (get(farm, potential_connected) == farm_id) {
                             break;
                         }
-                        try found_outer_perimeter.put(OuterPerimeter{ .location = potential_connected, .direction = dir }, {});
+                        try found_outer_perimeter.put(potential_connected.with_direction(dir), {});
                         check_loc = move_to.move(check_loc);
                     }
                 }

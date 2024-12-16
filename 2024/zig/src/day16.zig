@@ -99,7 +99,8 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
         //     }
         // }
         const item = priority_queue.remove().item;
-        std.debug.print("Processed element: {}", .{item});
+        // std.debug.print("Processing element: {}", .{item});
+        // std.debug.print(" => {?}\n", .{distance.get(item)});
         var item_neighbours = try neighbours(grid, item, allocator);
 
         var itr = item_neighbours.iterator();
@@ -107,12 +108,22 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
             const item_to_check = entry.key_ptr.*;
             const alternative = distance.get(item).? + entry.value_ptr.*;
             const current_distance = distance.get(item_to_check).?;
+
+            // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, current_distance });
             if (alternative < current_distance) {
+                // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, alternative });
                 try distance.put(entry.key_ptr.*, alternative);
-                try priority_queue.update(.{ .item = item_to_check, .priority = current_distance }, .{ .item = item_to_check, .priority = alternative });
+                for (priority_queue.items, 0..) |o, i| {
+                    if (o.item.eq(item_to_check)) {
+                        _ = priority_queue.removeIndex(i);
+                        try priority_queue.add(.{ .item = item_to_check, .priority = alternative });
+                        break;
+                    }
+                }
             }
         }
-        std.debug.print(" => {?}\n", .{distance.get(item)});
+        // std.debug.print("Processed  element: {}", .{item});
+        // std.debug.print(" => {?}\n", .{distance.get(item)});
 
         defer item_neighbours.deinit();
     }

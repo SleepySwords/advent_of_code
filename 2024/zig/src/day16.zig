@@ -78,7 +78,6 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                     }, .direction = dir };
                     try distance.put(vertex, std.math.maxInt(usize));
                     try previous.put(vertex, std.ArrayList(Vertex).init(allocator));
-                    try priority_queue.add(.{ .item = vertex, .priority = std.math.maxInt(usize) });
                 }
             } else if (tile == .start) {
                 for (directions) |dir| {
@@ -88,14 +87,13 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                     }, .direction = dir };
                     try distance.put(vertex, std.math.maxInt(usize));
                     try previous.put(vertex, std.ArrayList(Vertex).init(allocator));
-                    try priority_queue.add(.{ .item = vertex, .priority = std.math.maxInt(usize) });
                 }
                 const start = Vertex{ .location = Location{
                     .x = x,
                     .y = y,
                 }, .direction = .east };
                 try distance.put(start, 0);
-                try priority_queue.update(.{ .item = start, .priority = std.math.maxInt(usize) }, .{ .item = start, .priority = 0 });
+                try priority_queue.add(.{ .item = start, .priority = 0 });
             }
         }
     }
@@ -114,13 +112,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                 try distance.put(item_to_check, alternative);
                 previous.getPtr(item_to_check).?.clearAndFree();
                 try previous.getPtr(item_to_check).?.append(item);
-                for (priority_queue.items, 0..) |o, i| {
-                    if (o.item.eq(item_to_check)) {
-                        _ = priority_queue.removeIndex(i);
-                        try priority_queue.add(.{ .item = item_to_check, .priority = alternative });
-                        break;
-                    }
-                }
+                try priority_queue.add(.{ .item = item_to_check, .priority = alternative });
             } else if (alternative == current_distance) {
                 try previous.getPtr(item_to_check).?.append(item);
             }

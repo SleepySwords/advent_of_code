@@ -17,8 +17,9 @@ pub fn main() !void {
     }
     print_maze(&input.maze);
 
-    const ans_pt1 = try djiksta(&input.maze, allocator);
-    std.debug.print("Part 1: {}\n", .{ans_pt1});
+    const result = try djiksta(&input.maze, allocator);
+    std.debug.print("Part 1: {}\n", .{result.distance});
+    std.debug.print("Part 2: {}\n", .{result.best_spots});
 }
 
 fn with_priority(T: type) type {
@@ -54,9 +55,15 @@ fn neighbours(grid: *const std.ArrayList(std.ArrayList(Tile)), vertex: Vertex, a
     return hash;
 }
 
-fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.Allocator) !usize {
+fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.Allocator) !Result {
     var distance = std.AutoHashMap(Vertex, usize).init(allocator);
     defer distance.deinit();
+    var previous = std.AutoHashMap(Vertex, std.ArrayList(Vertex)).init(allocator);
+    defer {
+        var itr = previous.iterator();
+        while (itr.next()) |o| o.value_ptr.deinit();
+        previous.deinit();
+    }
 
     var priority_queue = std.PriorityQueue(with_priority(Vertex), void, priority_sort).init(allocator, {});
     defer priority_queue.deinit();
@@ -70,6 +77,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                         .y = y,
                     }, .direction = dir };
                     try distance.put(vertex, std.math.maxInt(usize));
+                    try previous.put(vertex, std.ArrayList(Vertex).init(allocator));
                     try priority_queue.add(.{ .item = vertex, .priority = std.math.maxInt(usize) });
                 }
             } else if (tile == .start) {
@@ -79,6 +87,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                         .y = y,
                     }, .direction = dir };
                     try distance.put(vertex, std.math.maxInt(usize));
+                    try previous.put(vertex, std.ArrayList(Vertex).init(allocator));
                     try priority_queue.add(.{ .item = vertex, .priority = std.math.maxInt(usize) });
                 }
                 const start = Vertex{ .location = Location{
@@ -112,7 +121,9 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
             // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, current_distance });
             if (alternative < current_distance) {
                 // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, alternative });
-                try distance.put(entry.key_ptr.*, alternative);
+                try distance.put(item_to_check, alternative);
+                previous.getPtr(item_to_check).?.clearAndFree();
+                try previous.getPtr(item_to_check).?.append(item);
                 for (priority_queue.items, 0..) |o, i| {
                     if (o.item.eq(item_to_check)) {
                         _ = priority_queue.removeIndex(i);
@@ -120,6 +131,8 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                         break;
                     }
                 }
+            } else if (alternative == current_distance) {
+                try previous.getPtr(item_to_check).?.append(item);
             }
         }
         // std.debug.print("Processed  element: {}", .{item});
@@ -127,6 +140,8 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
 
         defer item_neighbours.deinit();
     }
+    var best_paths = std.AutoHashMap(Location, void).init(allocator);
+    defer best_paths.deinit();
     var lowest: usize = std.math.maxInt(usize);
     for (grid.items, 0..) |line, y| {
         for (line.items, 0..) |tile, x| {
@@ -138,13 +153,23 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                     }, .direction = dir };
                     if (lowest > distance.get(vertex).?) {
                         lowest = distance.get(vertex).?;
+                        best_paths.clearRetainingCapacity();
+                        try get_paths(vertex, &previous, &best_paths);
                     }
                 }
+                break;
             }
         }
     }
 
-    return lowest;
+    return Result{ .distance = lowest, .best_spots = best_paths.count() };
+}
+
+fn get_paths(vertex: Vertex, previous: *const std.AutoHashMap(Vertex, std.ArrayList(Vertex)), best_paths: *std.AutoHashMap(Location, void)) !void {
+    try best_paths.put(vertex.location, {});
+    for (previous.get(vertex).?.items) |p| {
+        try get_paths(p, previous, best_paths);
+    }
 }
 
 fn print_maze(maze: *const std.ArrayList(std.ArrayList(Tile))) void {
@@ -191,6 +216,11 @@ fn parse(allocator: std.mem.Allocator) !Input {
         .maze = maze,
     };
 }
+
+const Result = struct {
+    best_spots: usize,
+    distance: usize,
+};
 
 const Tile = enum { wall, air, start, end };
 

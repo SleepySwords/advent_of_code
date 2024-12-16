@@ -101,15 +101,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
     }
 
     while (priority_queue.count() != 0) {
-        // std.debug.print("New element!\n", .{});
-        // for (priority_queue.items) |i| {
-        //     if (i.priority != std.math.maxInt(usize)) {
-        //         std.debug.print("{} ", .{i.priority});
-        //     }
-        // }
         const item = priority_queue.remove().item;
-        // std.debug.print("Processing element: {}", .{item});
-        // std.debug.print(" => {?}\n", .{distance.get(item)});
         var item_neighbours = try neighbours(grid, item, allocator);
 
         var itr = item_neighbours.iterator();
@@ -118,9 +110,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
             const alternative = distance.get(item).? + entry.value_ptr.*;
             const current_distance = distance.get(item_to_check).?;
 
-            // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, current_distance });
             if (alternative < current_distance) {
-                // std.debug.print("Updated    element: {} {}\n", .{ item_to_check, alternative });
                 try distance.put(item_to_check, alternative);
                 previous.getPtr(item_to_check).?.clearAndFree();
                 try previous.getPtr(item_to_check).?.append(item);
@@ -135,8 +125,6 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
                 try previous.getPtr(item_to_check).?.append(item);
             }
         }
-        // std.debug.print("Processed  element: {}", .{item});
-        // std.debug.print(" => {?}\n", .{distance.get(item)});
 
         defer item_neighbours.deinit();
     }

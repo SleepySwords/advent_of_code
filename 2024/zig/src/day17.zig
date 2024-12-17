@@ -69,98 +69,107 @@ fn run_program(input: *Input, allocator: std.mem.Allocator) !void {
     std.debug.print("\n", .{});
 }
 
-fn run_program_recursive(state: *State, outputs: usize, input: *Input, allocator: std.mem.Allocator, invalid: *std.AutoHashMap(State, void)) !?std.ArrayList(u8) {
-    if (invalid.contains(state.*)) return null;
-    if (state.instruction_pointer >= input.memory.items.len) return std.ArrayList(u8).init(allocator);
+// Working out
+//
+// B = A % 8; // A & (111)
+// B = B ^ 2; // B ^ (010)
+// C = A >> B; // Theoretical max of shifting by 7
+// B = B ^ 7; // B ^ (111) // Acts as ~B
+// B = B ^ C;
+// A = A >> 3;
+// OUT B % 8; // B & (111)
+// JUMP 0;
 
-    const previous_state = state.*;
-
-    const result = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], state);
-    if (result) |a| {
-        if (input.memory.items.len <= outputs or input.memory.items[outputs] != a) {
-            // std.debug.print("Invalid\n", .{});
-            // return output;
-        }
-    }
-    var output = try run_program_recursive(state, if (result != null) outputs + 1 else outputs, input, allocator, invalid);
-    if (output == null) {
-        try invalid.put(previous_state, {});
-        return null;
-    }
-    if (result) |a| {
-        try output.?.append(a);
-
-        var contains = false;
-        for (input.memory.items) |m| {
-            if (a == m) {
-                contains = true;
-            }
-        }
-
-        if (!contains) {
-            try invalid.put(previous_state, {});
-            output.?.deinit();
-            return null;
-        }
-
-        if (output.?.items.len < input.memory.items.len) {
-            var is_equal = true;
-            for (output.?.items, 0..) |o, i| {
-                if (o != input.memory.items[input.memory.items.len - 1 - i]) {
-                    try invalid.put(previous_state, {});
-                    is_equal = false;
-                    output.?.deinit();
-                    return null;
-                }
-            }
-        }
-    }
-
-    return output.?;
-}
+// 10000001111
+// B = 111
+// B = 101
+// C = 100000
+// B =    010
+// B =    000
+//
+//
+// Only 10 bits at a time can affect the output, hence we can cycle through
+// eliminating invalid registers, and adding to ones that produce valid values.
 
 fn run_program2(input: *Input, allocator: std.mem.Allocator) !void {
-    var cache = std.AutoHashMap(State, void).init(allocator);
-    defer {
-        cache.deinit();
-    }
-    var current = std.ArrayList(State).init(allocator);
-    defer current.deinit();
+    var count: usize = 0;
+    var valid = std.ArrayList(usize).init(allocator);
+    defer valid.deinit();
     var register_a: usize = 0;
-    outer: while (true) {
+    while (true) {
         var state = State{
             .register_a = register_a,
             .register_b = input.registers.items[1],
             .register_c = input.registers.items[2],
             .instruction_pointer = 0,
         };
-        std.debug.print("Attempting Register A: {}\n", .{register_a});
-        const output = try run_program_recursive(&state, 0, input, allocator, &cache);
-        if (output) |ot| {
-            defer ot.deinit();
-            var is_equal = ot.items.len == input.memory.items.len;
-            if (is_equal) {
-                for (ot.items, 0..) |o, i| {
-                    if (o != input.memory.items[input.memory.items.len - 1 - i]) {
-                        is_equal = false;
-                        break;
-                    }
-                }
+        var output = std.ArrayList(usize).init(allocator);
+        defer output.deinit();
+        while (state.instruction_pointer < input.memory.items.len) {
+            const o = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], &state);
+            if (o) |a| {
+                try output.append(a);
             }
-            if (is_equal) {
-                std.debug.print("Part 2: {}\n", .{register_a});
-                break :outer;
-            }
+        }
+        if (output.items[0] == input.memory.items[0]) {
+            count += 1;
+            try valid.append(register_a);
+        }
+        if (register_a > 0b00011_1111_1111) {
+            break;
         }
         register_a += 1;
     }
+
+    for (1..input.memory.items.len) |i| {
+        var valid_buffer = std.ArrayList(usize).init(allocator);
+        defer valid_buffer.deinit();
+        for (0..(0b111 + 1)) |mask| {
+            for (valid.items) |valid_reg_a| {
+                const reg_a = valid_reg_a | (mask << @intCast(7 + (3 * i)));
+                var state = State{
+                    .register_a = reg_a,
+                    .register_b = input.registers.items[1],
+                    .register_c = input.registers.items[2],
+                    .instruction_pointer = 0,
+                };
+                var output = std.ArrayList(usize).init(allocator);
+                defer output.deinit();
+                while (state.instruction_pointer < input.memory.items.len) {
+                    const o = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], &state);
+                    if (o) |a| {
+                        try output.append(a);
+                    }
+                }
+                if (output.items.len > i) {
+                    if (output.items[i] == input.memory.items[i]) {
+                        try valid_buffer.append(reg_a);
+                    }
+                }
+            }
+        }
+
+        {
+            const swap = valid;
+            valid = valid_buffer;
+            valid_buffer = swap;
+            valid_buffer.clearRetainingCapacity();
+        }
+    }
+
+    var lowest: usize = std.math.maxInt(usize);
+    for (valid.items) |v| {
+        if (v < lowest) lowest = v;
+    }
+    std.debug.print("{}\n", .{valid.items.len});
+    std.debug.print("{}\n", .{lowest});
 }
 
 fn evaluate_instruction(instr: u3, operand: u3, state: *State) ?u8 {
     switch (instr) {
         // adv
         0 => {
-            get_reg_ptr(.A, state).* /= std.math.pow(usize, 2, evaluate_combo(operand, state));
+            get_reg_ptr(.A, state).* >>= @intCast(evaluate_combo(operand, state));
         },
         // bxl
         1 => {
@@ -188,10 +197,10 @@ fn evaluate_instruction(instr: u3, operand: u3, state: *State) ?u8 {
         },
         // bdv
         6 => {
-            get_reg_ptr(.B, state).* = get_reg_value(.A, state) / std.math.pow(usize, 2, evaluate_combo(operand, state));
+            get_reg_ptr(.B, state).* = get_reg_value(.A, state) >> @intCast(evaluate_combo(operand, state));
         },
         7 => {
-            get_reg_ptr(.C, state).* = get_reg_value(.A, state) / std.math.pow(usize, 2, evaluate_combo(operand, state));
+            get_reg_ptr(.C, state).* = get_reg_value(.A, state) >> @intCast(evaluate_combo(operand, state));
         },
     }
     state.instruction_pointer += 2;

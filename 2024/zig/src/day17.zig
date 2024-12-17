@@ -12,8 +12,20 @@ pub fn main() !void {
         parsed.memory.deinit();
         parsed.registers.deinit();
     }
-    try run_program(&parsed, allocator);
-    try run_program2(&parsed, allocator);
+    const output = try run_program(State{
+        .register_a = parsed.registers.items[0],
+        .register_b = parsed.registers.items[1],
+        .register_c = parsed.registers.items[2],
+        .instruction_pointer = 0,
+    }, &parsed, allocator);
+    defer output.deinit();
+    std.debug.print("Part 1: ", .{});
+    for (output.items) |o| {
+        std.debug.print("{},", .{o});
+    }
+    std.debug.print("\n", .{});
+
+    try part2(&parsed, allocator);
 }
 
 fn evaluate_combo(value: u3, state: *const State) usize {
@@ -46,27 +58,18 @@ fn get_reg_value(register: Register, state: *const State) usize {
     };
 }
 
-fn run_program(input: *Input, allocator: std.mem.Allocator) !void {
-    var state = State{
-        .register_a = input.registers.items[0],
-        .register_b = input.registers.items[1],
-        .register_c = input.registers.items[2],
-        .instruction_pointer = 0,
-    };
+fn run_program(initial_state: State, input: *Input, allocator: std.mem.Allocator) !std.ArrayList(usize) {
+    var state = initial_state;
     var output = std.ArrayList(usize).init(allocator);
-    defer output.deinit();
     while (state.instruction_pointer < input.memory.items.len) {
-        const o = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], &state);
-        if (o) |a| {
-            try output.append(a);
+        const instr = input.memory.items[state.instruction_pointer];
+        const operand = input.memory.items[state.instruction_pointer + 1];
+        if (evaluate_instruction(instr, operand, &state)) |result| {
+            try output.append(result);
         }
     }
-    std.debug.print("Reg A: {}\nReg B: {}\nReg C: {}\n", .{ get_reg_value(.A, &state), get_reg_value(.B, &state), get_reg_value(.C, &state) });
-    std.debug.print("Part 1: ", .{});
-    for (output.items) |o| {
-        std.debug.print("{},", .{o});
-    }
-    std.debug.print("\n", .{});
+
+    return output;
 }
 
 // Working out
@@ -91,26 +94,20 @@ fn run_program(input: *Input, allocator: std.mem.Allocator) !void {
 // Only 10 bits at a time can affect the output, hence we can cycle through
 // eliminating invalid registers, and adding to ones that produce valid values.
 
-fn run_program2(input: *Input, allocator: std.mem.Allocator) !void {
+fn part2(input: *Input, allocator: std.mem.Allocator) !void {
     var count: usize = 0;
     var valid = std.ArrayList(usize).init(allocator);
     defer valid.deinit();
     var register_a: usize = 0;
     while (true) {
-        var state = State{
+        const state = State{
             .register_a = register_a,
             .register_b = input.registers.items[1],
             .register_c = input.registers.items[2],
             .instruction_pointer = 0,
         };
-        var output = std.ArrayList(usize).init(allocator);
+        const output = try run_program(state, input, allocator);
         defer output.deinit();
-        while (state.instruction_pointer < input.memory.items.len) {
-            const o = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], &state);
-            if (o) |a| {
-                try output.append(a);
-            }
-        }
         if (output.items[0] == input.memory.items[0]) {
             count += 1;
             try valid.append(register_a);
@@ -127,20 +124,14 @@ fn run_program2(input: *Input, allocator: std.mem.Allocator) !void {
         for (0..(0b111 + 1)) |mask| {
             for (valid.items) |valid_reg_a| {
                 const reg_a = valid_reg_a | (mask << @intCast(7 + (3 * i)));
-                var state = State{
+                const state = State{
                     .register_a = reg_a,
                     .register_b = input.registers.items[1],
                     .register_c = input.registers.items[2],
                     .instruction_pointer = 0,
                 };
-                var output = std.ArrayList(usize).init(allocator);
+                const output = try run_program(state, input, allocator);
                 defer output.deinit();
-                while (state.instruction_pointer < input.memory.items.len) {
-                    const o = evaluate_instruction(input.memory.items[state.instruction_pointer], input.memory.items[state.instruction_pointer + 1], &state);
-                    if (o) |a| {
-                        try output.append(a);
-                    }
-                }
                 if (output.items.len > i) {
                     if (output.items[i] == input.memory.items[i]) {
                         try valid_buffer.append(reg_a);
@@ -161,8 +152,7 @@ fn run_program2(input: *Input, allocator: std.mem.Allocator) !void {
     for (valid.items) |v| {
         if (v < lowest) lowest = v;
     }
-    std.debug.print("{}\n", .{valid.items.len});
-    std.debug.print("{}\n", .{lowest});
+    std.debug.print("Part 2: {}\n", .{lowest});
 }
 
 fn evaluate_instruction(instr: u3, operand: u3, state: *State) ?u8 {

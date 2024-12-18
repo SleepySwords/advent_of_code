@@ -13,7 +13,7 @@ pub fn main() !void {
 
     std.debug.print("{}\n", .{input});
     try part1(&input, allocator);
-    try part2(&input, allocator);
+    try binary_search(&input, allocator);
 }
 
 fn part1(input: *Input, allocator: std.mem.Allocator) !void {
@@ -26,6 +26,29 @@ fn part1(input: *Input, allocator: std.mem.Allocator) !void {
     const b = try bfs(.{ .x = 0, .y = 0 }, &bytes, allocator);
 
     std.debug.print("Part 1: {?}\n", .{b});
+}
+
+fn binary_search(input: *Input, allocator: std.mem.Allocator) !void {
+    var lowest: usize = 0;
+    var highest: usize = input.bytes.items.len - 1;
+    var bytes = std.AutoHashMap(Location, void).init(allocator);
+    defer bytes.deinit();
+    while (lowest != highest) {
+        bytes.clearRetainingCapacity();
+        const mid: usize = try std.math.divCeil(usize, (lowest + highest), 2);
+        for (0..(mid + 1)) |i| {
+            try bytes.put(input.bytes.items[i], {});
+        }
+        const b = try bfs(.{ .x = 0, .y = 0 }, &bytes, allocator);
+        if (b == null) {
+            highest = mid - 1;
+        } else {
+            lowest = mid;
+        }
+    }
+
+    const found = input.bytes.items[lowest + 1];
+    std.debug.print("Part 2: {},{}", .{ found.x, found.y });
 }
 
 fn part2(input: *Input, allocator: std.mem.Allocator) !void {

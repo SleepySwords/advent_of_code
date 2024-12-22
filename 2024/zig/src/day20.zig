@@ -15,13 +15,13 @@ pub fn main() !void {
         for (input.maze.items) |o| o.deinit();
         input.maze.deinit();
     }
-    print_maze(&input.maze);
 
     var visited = std.AutoHashMap(Location, void).init(allocator);
     defer visited.deinit();
 
     if (find_start(&input.maze)) |start| {
         const djiksta_map = try djiksta(&input.maze, allocator);
+        print_maze(&input.maze, &djiksta_map);
         const result = try bfs(&input.maze, start, &djiksta_map, allocator);
         std.debug.print("Part 1: {?}\n", .{result});
     }
@@ -34,26 +34,49 @@ fn with_distance(T: type) type {
     };
 }
 
-fn neighbours(grid: *const std.ArrayList(std.ArrayList(Tile)), vertex: Location, jump_wall: bool, allocator: std.mem.Allocator) !std.AutoHashMap(Location, bool) {
-    var hash = std.AutoHashMap(Location, bool).init(allocator);
+fn neighbours(grid: *const std.ArrayList(std.ArrayList(Tile)), inital_vertex: Location, cheat: usize, allocator: std.mem.Allocator) !std.AutoHashMap(Location, usize) {
+    var queue = std.ArrayList(with_distance(Location)).init(allocator);
+    defer queue.deinit();
 
-    for (directions) |dir| {
-        const forward = vertex.move(dir);
+    try queue.append(.{ .item = inital_vertex, .distance = 0 });
 
-        if (forward.x < grid.items[0].items.len and forward.y < grid.items.len) {
-            if (grid.items[forward.y].items[forward.x] == .air or grid.items[forward.y].items[forward.x] == .start or grid.items[forward.y].items[forward.x] == .end) {
-                try hash.put(forward, false);
-            } else if (jump_wall) {
-                const jumped_wall = forward.move(dir);
-                if (jumped_wall.y < grid.items.len and jumped_wall.x < grid.items[jumped_wall.y].items.len) {
-                    if (grid.items[jumped_wall.y].items[jumped_wall.x] == .air or grid.items[jumped_wall.y].items[jumped_wall.x] == .start or grid.items[jumped_wall.y].items[jumped_wall.x] == .end) {
-                        try hash.put(jumped_wall, true);
+    var visited = std.AutoHashMap(Location, void).init(allocator);
+    defer visited.deinit();
+
+    var hash = std.AutoHashMap(Location, usize).init(allocator);
+
+    while (queue.items.len != 0) {
+        const vertex = queue.orderedRemove(0);
+
+        if (visited.contains(vertex.item)) continue;
+        try visited.put(vertex.item, {});
+
+        for (directions) |dir| {
+            const forward = vertex.item.move(dir);
+
+            if (forward.x < grid.items[0].items.len and forward.y < grid.items.len) {
+                if (vertex.distance < cheat) {
+                    try queue.append(.{ .item = forward, .distance = vertex.distance + 1 });
+                }
+            }
+        }
+
+        for (directions) |dir| {
+            const forward = vertex.item.move(dir);
+
+            if (forward.x < grid.items[0].items.len and forward.y < grid.items.len) {
+                if (grid.items[forward.y].items[forward.x] != .wall) {
+                    if (hash.get(forward)) |current| {
+                        if (vertex.distance < current) {
+                            try hash.put(forward, vertex.distance);
+                        }
+                    } else {
+                        try hash.put(forward, vertex.distance);
                     }
                 }
             }
         }
     }
-
     return hash;
 }
 
@@ -77,40 +100,6 @@ fn find_end(grid: *const std.ArrayList(std.ArrayList(Tile))) ?Vertex {
         }
     }
     return null;
-}
-
-fn shortest_path(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Location, end: Location, allocator: std.mem.Allocator) !usize {
-    var queue = std.ArrayList(with_distance(Location)).init(allocator);
-    defer queue.deinit();
-
-    try queue.append(.{ .item = start, .distance = 0 });
-
-    var visited = std.AutoHashMap(Location, void).init(allocator);
-    defer visited.deinit();
-
-    while (queue.items.len != 0) {
-        const item = queue.orderedRemove(0);
-        if (visited.contains(item.item)) {
-            continue;
-        } else {
-            try visited.put(item.item, {});
-        }
-        var item_neighbours = try neighbours(grid, item.item, false, allocator);
-
-        var itr = item_neighbours.iterator();
-        while (itr.next()) |entry| {
-            const next_point = entry.key_ptr.*;
-            if (next_point.eq(end)) {
-                return item.distance;
-            }
-
-            try queue.append(.{ .item = entry.key_ptr.*, .distance = item.distance + 1 });
-        }
-
-        item_neighbours.deinit();
-    }
-
-    return std.math.maxInt(usize);
 }
 
 fn priority_sort(_: void, a: with_distance(Location), b: with_distance(Location)) std.math.Order {
@@ -150,7 +139,7 @@ fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.A
 
     while (priority_queue.count() != 0) {
         const item = priority_queue.remove().item;
-        var item_neighbours = try neighbours(grid, item, false, allocator);
+        var item_neighbours = try neighbours(grid, item, 0, allocator);
 
         var itr = item_neighbours.iterator();
         while (itr.next()) |entry| {
@@ -189,16 +178,21 @@ fn bfs(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Vertex, djiksta_m
         if (visited.contains(vertex)) continue;
         try visited.put(vertex, {});
 
-        var neigh = try neighbours(grid, vertex, true, allocator);
+        // Cheat also include the length of the exit node,
+        // this is not included in the neighbour calcuation so must be manually
+        // accounted for.
+        const max_length = 20;
+        var neigh = try neighbours(grid, vertex, max_length - 1, allocator);
         defer neigh.deinit();
 
         var itr = neigh.iterator();
         while (itr.next()) |entry| {
-            if (entry.value_ptr.*) {
+            if (entry.value_ptr.* != 0) {
                 if (!visited.contains(entry.key_ptr.*)) {
-                    const saved = djiksta_map.get(entry.key_ptr.*).? - djiksta_map.get(vertex).?;
-                    if (saved >= 1 + 100) {
-                        std.debug.print("res: {} {} {}\n", .{ vertex, entry.key_ptr, saved - 1 });
+                    const total = djiksta_map.get(entry.key_ptr.*).? - djiksta_map.get(vertex).?;
+                    const cheat_size = entry.value_ptr.*;
+                    if (total >= cheat_size + 1 + 100) {
+                        std.debug.print("res: {} {} {}\n", .{ vertex, entry.key_ptr, total - cheat_size - 1 });
                         count += 1;
                     }
                 }
@@ -217,7 +211,7 @@ fn get_paths(vertex: Vertex, previous: *const std.AutoHashMap(Vertex, std.ArrayL
     }
 }
 
-fn print_maze(maze: *const std.ArrayList(std.ArrayList(Tile))) void {
+fn print_maze(maze: *const std.ArrayList(std.ArrayList(Tile)), _: *const std.AutoHashMap(Location, usize)) void {
     for (maze.items) |line| {
         for (line.items) |tile| {
             const char: u8 = switch (tile) {

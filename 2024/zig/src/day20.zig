@@ -21,7 +21,8 @@ pub fn main() !void {
     defer visited.deinit();
 
     if (find_start(&input.maze)) |start| {
-        const result = try bfs(&input.maze, start, allocator);
+        const djiksta_map = try djiksta(&input.maze, allocator);
+        const result = try bfs(&input.maze, start, &djiksta_map, allocator);
         std.debug.print("Part 1: {?}\n", .{result});
     }
 }
@@ -112,7 +113,64 @@ fn shortest_path(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Locatio
     return std.math.maxInt(usize);
 }
 
-fn bfs(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Vertex, allocator: std.mem.Allocator) !?usize {
+fn priority_sort(_: void, a: with_distance(Location), b: with_distance(Location)) std.math.Order {
+    if (a.distance < b.distance) {
+        return std.math.Order.lt;
+    } else if (a.distance > b.distance) {
+        return std.math.Order.gt;
+    } else {
+        return std.math.Order.eq;
+    }
+}
+
+fn djiksta(grid: *const std.ArrayList(std.ArrayList(Tile)), allocator: std.mem.Allocator) !std.AutoHashMap(Location, usize) {
+    var distance = std.AutoHashMap(Location, usize).init(allocator);
+
+    var priority_queue = std.PriorityQueue(with_distance(Location), void, priority_sort).init(allocator, {});
+    defer priority_queue.deinit();
+
+    for (grid.items, 0..) |line, y| {
+        for (line.items, 0..) |tile, x| {
+            if (tile == .air or tile == .end) {
+                const vertex = Location{
+                    .x = x,
+                    .y = y,
+                };
+                try distance.put(vertex, std.math.maxInt(usize));
+            } else if (tile == .start) {
+                const start = Location{
+                    .x = x,
+                    .y = y,
+                };
+                try distance.put(start, 0);
+                try priority_queue.add(.{ .item = start, .distance = 0 });
+            }
+        }
+    }
+
+    while (priority_queue.count() != 0) {
+        const item = priority_queue.remove().item;
+        var item_neighbours = try neighbours(grid, item, false, allocator);
+
+        var itr = item_neighbours.iterator();
+        while (itr.next()) |entry| {
+            const item_to_check = entry.key_ptr.*;
+            const alternative = distance.get(item).? + 1;
+            const current_distance = distance.get(item_to_check).?;
+
+            if (alternative < current_distance) {
+                try distance.put(item_to_check, alternative);
+                try priority_queue.add(.{ .item = item_to_check, .distance = alternative });
+            }
+        }
+
+        defer item_neighbours.deinit();
+    }
+
+    return distance;
+}
+
+fn bfs(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Vertex, djiksta_map: *const std.AutoHashMap(Location, usize), allocator: std.mem.Allocator) !?usize {
     var queue = std.ArrayList(Location).init(allocator);
     defer queue.deinit();
 
@@ -138,8 +196,7 @@ fn bfs(grid: *const std.ArrayList(std.ArrayList(Tile)), start: Vertex, allocator
         while (itr.next()) |entry| {
             if (entry.value_ptr.*) {
                 if (!visited.contains(entry.key_ptr.*)) {
-                    // FIXME: cache djiksta and calculate differences...
-                    const saved = try shortest_path(grid, vertex, entry.key_ptr.*, allocator);
+                    const saved = djiksta_map.get(entry.key_ptr.*).? - djiksta_map.get(vertex).?;
                     if (saved >= 1 + 100) {
                         std.debug.print("res: {} {} {}\n", .{ vertex, entry.key_ptr, saved - 1 });
                         count += 1;

@@ -4,9 +4,9 @@ var GPA = std.heap.GeneralPurposeAllocator(.{}){};
 
 pub fn main() !void {
     const allocator = GPA.allocator();
-    // defer if (GPA.deinit() == std.heap.Check.leak) {
-    //     std.debug.print("Wow", .{});
-    // };
+    defer if (GPA.deinit() == std.heap.Check.leak) {
+        std.debug.print("Wow", .{});
+    };
 
     const input = try parse(allocator);
     defer {
@@ -14,7 +14,12 @@ pub fn main() !void {
     }
 
     var cache = std.ArrayList(std.AutoHashMap(usize, u8)).init(allocator);
+    defer {
+        for (cache.items) |*o| o.deinit();
+        cache.deinit();
+    }
     var t = std.AutoHashMap(usize, usize).init(allocator);
+    defer t.deinit();
 
     for (input.initial_numbers.items, 0..) |*num, n| {
         var previous: [5]usize = .{ 0, 0, 0, 0, num.* };

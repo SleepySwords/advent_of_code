@@ -14,6 +14,7 @@ pub fn main() !void {
     }
 
     var cache = std.ArrayList(std.AutoHashMap(usize, u8)).init(allocator);
+    var t = std.AutoHashMap(usize, usize).init(allocator);
 
     for (input.initial_numbers.items, 0..) |*num, n| {
         var previous: [5]usize = .{ 0, 0, 0, 0, num.* };
@@ -39,6 +40,8 @@ pub fn main() !void {
                 const hash = (((diff1 + 9) * 19 + (diff2 + 9)) * 19 + (diff3 + 9)) * 19 + (diff4 + 9);
                 if (!cache.items[n].contains(@intCast(hash))) {
                     try cache.items[n].put(@intCast(hash), @intCast(num.* % 10));
+                    const result = try t.getOrPutValue(@intCast(hash), 0);
+                    result.value_ptr.* += num.* % 10;
                 }
             }
         }
@@ -48,16 +51,11 @@ pub fn main() !void {
 
     var most: usize = 0;
     for (0..19 * 19 * 19 * 19) |hash| {
-        var total: usize = 0;
-        for (0..input.initial_numbers.items.len) |i| {
-            if (cache.items[i].get(hash)) |found| {
-                total += found;
+        if (t.get(hash)) |total| {
+            if (total > most) {
+                most = total;
+                std.debug.print("{} {} \n", .{ most, hash });
             }
-        }
-
-        if (total > most) {
-            most = total;
-            std.debug.print("{} {} \n", .{ most, hash });
         }
     }
 

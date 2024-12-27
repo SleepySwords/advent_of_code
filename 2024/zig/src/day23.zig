@@ -33,7 +33,12 @@ pub fn main() !void {
     var x = std.StringHashMap(void).init(allocator);
     defer x.deinit();
     var cliques = std.ArrayList(std.StringHashMap(void)).init(allocator);
-    defer cliques.deinit();
+    defer {
+        for (cliques.items) |*clique| {
+            clique.deinit();
+        }
+        cliques.deinit();
+    }
     try maximum_clique(&r, &p, &x, &input, &cliques, allocator);
 
     var max_index: usize = 0;
@@ -68,10 +73,6 @@ pub fn main() !void {
     }
 
     std.debug.print("\n", .{});
-
-    for (cliques.items) |*clique| {
-        clique.deinit();
-    }
 }
 
 fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize {
@@ -109,7 +110,7 @@ fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize 
     return count_num;
 }
 
-fn is_connected_vertex(a: []const u8, b: []const u8, graph: *const Graph) bool {
+fn is_connected(a: []const u8, b: []const u8, graph: *const Graph) bool {
     const edges = graph.data.get(a) orelse return false;
     for (edges.items) |edge| {
         if (std.mem.eql(u8, edge.items, b)) {
@@ -117,24 +118,6 @@ fn is_connected_vertex(a: []const u8, b: []const u8, graph: *const Graph) bool {
         }
     }
     return false;
-}
-
-fn is_connected(clique: *std.StringHashMap(void), vertex: []const u8, graph: *const Graph) bool {
-    const edges = graph.data.get(vertex) orelse return false;
-    var itr = clique.iterator();
-    while (itr.next()) |v| {
-        var found = false;
-        for (edges.items) |edge| {
-            if (std.mem.eql(u8, edge.items, v.key_ptr.*)) {
-                found = true;
-            }
-        }
-        if (!found) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 // https://www.geeksforgeeks.org/maximal-clique-problem-recursive-solution/
@@ -152,7 +135,7 @@ fn maximum_clique(r: *std.StringHashMap(void), p: *std.StringHashMap(void), x: *
         var new_p = std.StringHashMap(void).init(allocator);
         defer new_p.deinit();
         while (p_itr.next()) |v_p| {
-            if (is_connected_vertex(v_p.*, vertex.?.*, graph)) {
+            if (is_connected(v_p.*, vertex.?.*, graph)) {
                 try new_p.put(v_p.*, {});
             }
         }
@@ -160,7 +143,7 @@ fn maximum_clique(r: *std.StringHashMap(void), p: *std.StringHashMap(void), x: *
         defer new_x.deinit();
         var x_itr = x.keyIterator();
         while (x_itr.next()) |v_x| {
-            if (is_connected_vertex(v_x.*, vertex.?.*, graph)) {
+            if (is_connected(v_x.*, vertex.?.*, graph)) {
                 try new_x.put(v_x.*, {});
             }
         }
@@ -170,37 +153,6 @@ fn maximum_clique(r: *std.StringHashMap(void), p: *std.StringHashMap(void), x: *
         try x.put(vertex.?.*, {});
         _ = p.remove(vertex.?.*);
     }
-}
-
-fn equivalent_classes(graph: *const Graph, allocator: std.mem.Allocator) !std.ArrayList(std.StringHashMap(void)) {
-    var equivalent_classes_list = std.ArrayList(std.StringHashMap(void)).init(allocator);
-    var visited = std.StringHashMap(void).init(allocator);
-    defer visited.deinit();
-
-    var vertex_itr = graph.verticies.iterator();
-    while (vertex_itr.next()) |vertex| {
-        if (visited.contains(vertex.key_ptr.*)) continue;
-
-        var equivalent_class = std.StringHashMap(void).init(allocator);
-
-        var queue = std.ArrayList([]const u8).init(allocator);
-        defer queue.deinit();
-        try queue.append(vertex.key_ptr.*);
-
-        while (queue.items.len != 0) {
-            const item = queue.pop();
-            if (visited.contains(item)) continue;
-            try visited.put(item, {});
-            for (graph.data.get(item).?.items) |edge| {
-                try queue.append(edge.items);
-                try equivalent_class.put(edge.items, {});
-            }
-        }
-
-        try equivalent_classes_list.append(equivalent_class);
-    }
-
-    return equivalent_classes_list;
 }
 
 const Graph = struct {

@@ -133,16 +133,12 @@ fn move_direction(direction: GuardDirection, position: *const GuardPosition) Gua
 }
 
 pub fn parse(allocator: std.mem.Allocator) !ParsedInput {
-    const stdin_file = std.io.getStdIn();
-    var br = std.io.bufferedReader(stdin_file.reader());
-    const stdin = br.reader();
-
     var buf: [65_536]u8 = undefined;
-    const size = try stdin.readAll(&buf);
+    const size = try std.fs.File.stdin().readAll(&buf);
 
-    var input_itr = std.mem.split(u8, buf[0..size], "\n");
+    var input_itr = std.mem.splitSequence(u8, buf[0..size], "\n");
 
-    var tiles = std.ArrayList(Tile).init(allocator);
+    var tiles = std.ArrayList(Tile).empty;
     var width: usize = undefined;
     var height: usize = 0;
     var position: GuardPosition = undefined;
@@ -159,7 +155,7 @@ pub fn parse(allocator: std.mem.Allocator) !ParsedInput {
                     .y = @intCast(height),
                 };
             }
-            try tiles.append(switch (ch) {
+            try tiles.append(allocator, switch (ch) {
                 '.' => .Air,
                 '#' => .Obstacle,
                 '^' => .Air,
@@ -168,5 +164,5 @@ pub fn parse(allocator: std.mem.Allocator) !ParsedInput {
         }
     }
 
-    return ParsedInput{ .tiles = try tiles.toOwnedSlice(), .width = width, .length = height, .initial_pos = position };
+    return ParsedInput{ .tiles = try tiles.toOwnedSlice(allocator), .width = width, .length = height, .initial_pos = position };
 }

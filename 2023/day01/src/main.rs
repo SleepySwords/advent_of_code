@@ -1,8 +1,10 @@
 use std::error::Error;
 
 use advent_of_code_lib::{self, Solver};
+use dotenv::dotenv;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    dotenv().ok();
     advent_of_code_lib::run_and_print(Day, "2023", "1")
 }
 

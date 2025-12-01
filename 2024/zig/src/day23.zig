@@ -10,7 +10,6 @@ pub fn main() !void {
 
     var input = try parse(allocator);
     defer {
-        for (input.verticies.items) |o| o.deinit();
         input.verticies.deinit();
         var itr = input.data.iterator();
         while (itr.next()) |entry| {
@@ -22,57 +21,6 @@ pub fn main() !void {
 
     const count = try three_clique_count(&input, allocator);
     std.debug.print("Part 1: {}\n", .{count});
-
-    var r = std.StringHashMap(void).init(allocator);
-    defer r.deinit();
-    var p = std.StringHashMap(void).init(allocator);
-    for (input.verticies.items) |v| {
-        try p.put(v.items, {});
-    }
-    defer p.deinit();
-    var x = std.StringHashMap(void).init(allocator);
-    defer x.deinit();
-    var cliques = std.ArrayList(std.StringHashMap(void)).init(allocator);
-    defer {
-        for (cliques.items) |*clique| {
-            clique.deinit();
-        }
-        cliques.deinit();
-    }
-    try maximum_clique(&r, &p, &x, &input, &cliques, allocator);
-
-    var max_index: usize = 0;
-    var max_found: usize = 0;
-
-    for (cliques.items, 0..) |clique, i| {
-        if (max_found < clique.count()) {
-            max_index = i;
-            max_found = clique.count();
-        }
-    }
-
-    var max_clique = std.ArrayList([]const u8).init(allocator);
-    defer max_clique.deinit();
-    var clique_itr = cliques.items[max_index].keyIterator();
-    while (clique_itr.next()) |cli| {
-        try max_clique.append(cli.*);
-    }
-
-    std.sort.pdq([]const u8, max_clique.items, {}, struct {
-        pub fn compare(_: void, a: []const u8, b: []const u8) bool {
-            return std.mem.order(u8, a, b).compare(std.math.CompareOperator.lt);
-        }
-    }.compare);
-
-    std.debug.print("Part 2: ", .{});
-    for (max_clique.items, 0..) |cli, i| {
-        std.debug.print("{s}", .{cli});
-        if (i != max_clique.items.len - 1) {
-            std.debug.print(",", .{});
-        }
-    }
-
-    std.debug.print("\n", .{});
 }
 
 fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize {
@@ -80,12 +28,13 @@ fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize 
     defer visited.deinit();
     var count_num: usize = 0;
 
-    for (graph.verticies.items) |ver| {
-        if (ver.items[0] != 't') {
+    var itr = graph.verticies.iterator();
+    while (itr.next()) |ver| {
+        if (ver.key_ptr.*[0] != 't') {
             continue;
         }
-        try visited.put(ver.items, {});
-        if (graph.data.get(ver.items)) |edges| {
+        try visited.put(ver.key_ptr.*, {});
+        if (graph.data.get(ver.key_ptr.*)) |edges| {
             for (edges.items, 0..) |first, i| {
                 if (visited.contains(first.items)) continue;
                 for (edges.items[i..]) |second| {
@@ -98,7 +47,7 @@ fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize 
                         for (f_edge.items) |e| {
                             if (std.mem.eql(u8, e.items, second.items)) {
                                 count_num += 1;
-                                std.debug.print("{s} {s} {s}\n", .{ first.items, second.items, ver.items });
+                                std.debug.print("{s} {s} {s}\n", .{ first.items, second.items, ver.key_ptr.* });
                             }
                         }
                     }
@@ -110,54 +59,88 @@ fn three_clique_count(graph: *const Graph, allocator: std.mem.Allocator) !usize 
     return count_num;
 }
 
-fn is_connected(a: []const u8, b: []const u8, graph: *const Graph) bool {
-    const edges = graph.data.get(a) orelse return false;
-    for (edges.items) |edge| {
-        if (std.mem.eql(u8, edge.items, b)) {
-            return true;
+fn three_clique(graph: *const Graph, allocator: std.mem.Allocator) !std.ArrayList(std.StringHashMap(void)) {
+    var visited = std.StringHashMap(void).init(allocator);
+    defer visited.deinit();
+
+    var cliques = std.ArrayList(std.StringHashMap(void)).init(allocator);
+
+    var itr = graph.verticies.iterator();
+    while (itr.next()) |ver| {
+        if (ver.key_ptr.*[0] != 't') {
+            continue;
+        }
+        try visited.put(ver.key_ptr.*, {});
+        if (graph.data.get(ver.key_ptr.*)) |edges| {
+            for (edges.items, 0..) |first, i| {
+                if (visited.contains(first.items)) continue;
+                for (edges.items[i..]) |second| {
+                    if (visited.contains(second.items)) continue;
+                    if (std.mem.eql(u8, first.items, second.items)) {
+                        continue;
+                    }
+
+                    if (graph.data.get(first.items)) |f_edge| {
+                        for (f_edge.items) |e| {
+                            if (std.mem.eql(u8, e.items, second.items)) {
+                                var clique = std.StringHashMap(void).init(allocator);
+                                try clique.put(first.items, {});
+                                try clique.put(second.items, {});
+                                try clique.put(ver.key_ptr.*, {});
+
+                                cliques.append(cliques);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    return false;
+
+    return cliques;
 }
 
-// https://www.geeksforgeeks.org/maximal-clique-problem-recursive-solution/
-fn maximum_clique(r: *std.StringHashMap(void), p: *std.StringHashMap(void), x: *std.StringHashMap(void), graph: *const Graph, cliques_found: *std.ArrayList(std.StringHashMap(void)), allocator: std.mem.Allocator) !void {
-    if (p.count() == 0 and x.count() == 0) {
-        try cliques_found.append(try r.clone());
+fn grow(graph: *Graph, clique: *std.StringHashMap(void)) void {
+    var itr = graph.verticies.iterator();
+    while (itr.next()) |vertex| {
+        if (clique.contains(vertex)) continue;
     }
+}
 
-    while (p.count() != 0) {
-        var new_r = try r.clone();
-        defer new_r.deinit();
-        var p_itr = p.keyIterator();
-        const vertex = p_itr.next();
-        try new_r.put(vertex.?.*, {});
-        var new_p = std.StringHashMap(void).init(allocator);
-        defer new_p.deinit();
-        while (p_itr.next()) |v_p| {
-            if (is_connected(v_p.*, vertex.?.*, graph)) {
-                try new_p.put(v_p.*, {});
+fn equivalent_classes(graph: *const Graph, allocator: std.mem.Allocator) !std.ArrayList(std.StringHashMap(void)) {
+    var equivalent_classes_list = std.ArrayList(std.StringHashMap(void)).init(allocator);
+    var visited = std.StringHashMap(void).init(allocator);
+    defer visited.deinit();
+
+    var vertex_itr = graph.verticies.iterator();
+    while (vertex_itr.next()) |vertex| {
+        if (visited.contains(vertex.key_ptr.*)) continue;
+
+        var equivalent_class = std.StringHashMap(void).init(allocator);
+
+        var queue = std.ArrayList([]const u8).init(allocator);
+        defer queue.deinit();
+        try queue.append(vertex.key_ptr.*);
+
+        while (queue.items.len != 0) {
+            const item = queue.pop();
+            if (visited.contains(item)) continue;
+            try visited.put(item, {});
+            for (graph.data.get(item).?.items) |edge| {
+                try queue.append(edge.items);
+                try equivalent_class.put(edge.items, {});
             }
         }
-        var new_x = std.StringHashMap(void).init(allocator);
-        defer new_x.deinit();
-        var x_itr = x.keyIterator();
-        while (x_itr.next()) |v_x| {
-            if (is_connected(v_x.*, vertex.?.*, graph)) {
-                try new_x.put(v_x.*, {});
-            }
-        }
 
-        try maximum_clique(&new_r, &new_p, &new_x, graph, cliques_found, allocator);
-
-        try x.put(vertex.?.*, {});
-        _ = p.remove(vertex.?.*);
+        try equivalent_classes_list.append(equivalent_class);
     }
+
+    return equivalent_classes_list;
 }
 
 const Graph = struct {
     data: std.StringHashMap(std.ArrayList(std.ArrayList(u8))),
-    verticies: std.ArrayList(std.ArrayList(u8)),
+    verticies: std.StringHashMap(void),
 };
 
 fn parse(allocator: std.mem.Allocator) !Graph {
@@ -172,7 +155,6 @@ fn parse(allocator: std.mem.Allocator) !Graph {
 
     var edges = std.StringHashMap(std.ArrayList(std.ArrayList(u8))).init(allocator);
     var vertecies = std.StringHashMap(void).init(allocator);
-    defer vertecies.deinit();
 
     while (edges_itr.next()) |line| {
         if (line.len == 0) continue;
@@ -199,13 +181,5 @@ fn parse(allocator: std.mem.Allocator) !Graph {
         try vertecies.put(line[3..5], {});
     }
 
-    var str_vertecies = std.ArrayList(std.ArrayList(u8)).init(allocator);
-    var itr = vertecies.keyIterator();
-    while (itr.next()) |o| {
-        var name = std.ArrayList(u8).init(allocator);
-        try name.appendSlice(o.*);
-        try str_vertecies.append(name);
-    }
-
-    return Graph{ .data = edges, .verticies = str_vertecies };
+    return Graph{ .data = edges, .verticies = vertecies };
 }

@@ -41,17 +41,17 @@ func (d *Day2) Part2() any {
 		for id := r.begin; id <= r.end; id++ {
 			s := fmt.Sprint(id)
 			for patternLength := 1; patternLength <= len(s)/2; patternLength++ {
-				i := 0
+				patternIndex := 0
 				repeated := false
-				for ch_i := 0; ch_i < len(s); ch_i++ {
-					ch := s[ch_i]
-					ru := s[i]
+				for i := 0; i < len(s); i++ {
+					ch := s[i]
+					p := s[patternIndex]
 					repeated = false
-					if ru != ch {
+					if p != ch {
 						break
 					}
-					i = (i + 1) % patternLength
-					if i == 0 {
+					patternIndex = (patternIndex + 1) % patternLength
+					if patternIndex == 0 {
 						repeated = true
 					}
 				}

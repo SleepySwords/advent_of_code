@@ -1,28 +1,34 @@
-package main
+package day1
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"sleepyswords/advent/day"
 	"strconv"
 	"strings"
 )
 
-func main() {
-	wd, _ := os.Getwd()
-	path := filepath.Join(wd, "advent/day1.txt")
-	file, err := os.Open(path)
-	if err != nil {
-		panic("Could not open file")
+func Subscribe(m map[int]func() day.Day) {
+	m[len(m)] = func() day.Day {
+		return &Day1{}
 	}
+}
 
-	buffer := make([]byte, 32768)
-	n, err := file.Read(buffer)
-	if err != nil {
-		panic("Could not read file")
-	}
+type Day1 struct {
+	part1 int
+	part2 int
+}
 
-	st := string(buffer[0:n])
+func (d *Day1) Part1() any {
+	return d.part1
+}
+
+func (d *Day1) Part2() any {
+	return d.part2
+}
+
+func (d *Day1) Parse(buf []byte) {
+
+	st := string(buf)
 	lines := strings.Split(st, "\n")
 
 	dial := 50
@@ -48,12 +54,12 @@ func main() {
 		dial, hits0 = rotate(dial, amount, rotation)
 		if dial == 0 {
 			pass_p1 += 1
-		} 
+		}
 		pass_p2 += hits0
 	}
 
-	fmt.Println("Part 1:", pass_p1)
-	fmt.Println("Part 1:", pass_p2)
+	d.part1 = pass_p1
+	d.part2 = pass_p2
 }
 
 func rotate(dial int, amount int, direction int) (int, int) {

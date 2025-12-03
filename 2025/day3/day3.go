@@ -13,9 +13,6 @@ func Subscribe(m map[int]func() day.Day) {
 }
 
 type Day3 struct {
-	part1 int
-	part2 int
-
 	banks [][]byte
 }
 

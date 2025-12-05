@@ -103,6 +103,8 @@ func (d *Day5) Part2() any {
 				if isMatch(accountedRange.begin, *r) && isMatch(accountedRange.end, *r) {
 					// Splits the range into two ranged
 					old := r.end
+					// This bit me, since append could reslice, all of our references to an existing array are invalid
+					// We have to refetch those references or update before.
 					r.end = accountedRange.begin - 1
 					ourRanges = append(ourRanges, Range{
 						begin: accountedRange.end + 1,

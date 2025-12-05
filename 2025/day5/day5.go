@@ -22,37 +22,6 @@ type Day5 struct {
 	values []int
 }
 
-type Btree struct {
-	degree int
-	root   *BtreeInternalNode
-}
-
-type BtreeInternalNode struct {
-	payloads []BtreeNode
-}
-
-type BtreeLeafNode struct {
-	values []int
-	next   *BtreeLeafNode
-}
-
-type BtreeNode interface {
-	exists(value int) bool
-}
-
-func (b *BtreeInternalNode) exists(value int) bool {
-	for _, payload := range b.payloads {
-		if payload.exists(value) {
-			return true
-		}
-	}
-	return false
-}
-
-func (*BtreeLeafNode) exists(value int) bool {
-	return false
-}
-
 func isMatch(id int, r Range) bool {
 	return id >= r.begin && id <= r.end
 }
@@ -113,15 +82,19 @@ func (d *Day5) Part2() any {
 				}
 				// Case 4: The beginning is outside the range and the end is outside the range, coverring the entire range
 				if accountedRange.begin <= r.begin && accountedRange.end >= r.end {
+					// Invalidate the range
 					r.begin = -1
 					r.end = -1
 				}
 			}
 		}
 		for _, r := range ourRanges {
+			// Dismiss all invalid ranges
 			if r.begin == -1 && r.end == -1 {
 				continue
 			}
+			// The splitting operation can cause invalid ranges at boundary values.
+			// This accounts for that.
 			if r.begin > r.end {
 				continue
 			}

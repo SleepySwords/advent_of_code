@@ -76,20 +76,21 @@ func (d *Day8) Part2() any {
 		}
 	}
 	heap.Init(&hp)
+MainLoop:
 	for {
 		item := heap.Pop(&hp).(*Edge)
 		uf.Union(indexes[item.a], indexes[item.b])
-		foundRep := uf.Find(0)
-		allMatch := true
-		for i := range len(d.boxes) {
-			if uf.Find(i) != foundRep {
-				allMatch = false
-				break
+		found := false
+		for _, s := range uf.Sizes() {
+			if s > 0 {
+				if found {
+					continue MainLoop
+				}
+				found = true
 			}
+
 		}
-		if allMatch {
-			return item.a.x * item.b.x
-		}
+		return item.a.x * item.b.x
 	}
 }
 

@@ -3,7 +3,6 @@ package day8
 import (
 	"cmp"
 	"container/heap"
-	"fmt"
 	"sleepyswords/advent/day"
 	"slices"
 	"strconv"
@@ -120,6 +119,5 @@ func (d *Day8) Parse(buf []byte) {
 		})
 	}
 
-	fmt.Println(boxes)
 	d.boxes = boxes
 }

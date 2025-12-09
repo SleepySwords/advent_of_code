@@ -13,6 +13,7 @@ import (
 	"sleepyswords/advent/day6"
 	"sleepyswords/advent/day7"
 	"sleepyswords/advent/day8"
+	"sleepyswords/advent/day9"
 	"strconv"
 )
 
@@ -33,6 +34,7 @@ func main() {
 	day6.Subscribe(DAYS)
 	day7.Subscribe(DAYS)
 	day8.Subscribe(DAYS)
+	day9.Subscribe(DAYS)
 
 	wd, _ := os.Getwd()
 	path := filepath.Join(wd, fmt.Sprintf("advent/day%d.txt", day))

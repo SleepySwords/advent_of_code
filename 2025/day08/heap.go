@@ -1,4 +1,4 @@
-package day8
+package day08
 
 // Copied from https://pkg.go.dev/container/heap#example-package-PriorityQueue
 type Edge struct {

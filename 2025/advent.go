@@ -5,15 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"sleepyswords/advent/day"
-	"sleepyswords/advent/day1"
-	"sleepyswords/advent/day2"
-	"sleepyswords/advent/day3"
-	"sleepyswords/advent/day4"
-	"sleepyswords/advent/day5"
-	"sleepyswords/advent/day6"
-	"sleepyswords/advent/day7"
-	"sleepyswords/advent/day8"
-	"sleepyswords/advent/day9"
+	"sleepyswords/advent/day01"
+	"sleepyswords/advent/day02"
+	"sleepyswords/advent/day03"
+	"sleepyswords/advent/day04"
+	"sleepyswords/advent/day05"
+	"sleepyswords/advent/day06"
+	"sleepyswords/advent/day07"
+	"sleepyswords/advent/day08"
+	"sleepyswords/advent/day09"
 	"strconv"
 )
 
@@ -26,15 +26,15 @@ func main() {
 		panic("Invalid day")
 	}
 
-	day1.Subscribe(DAYS)
-	day2.Subscribe(DAYS)
-	day3.Subscribe(DAYS)
-	day4.Subscribe(DAYS)
-	day5.Subscribe(DAYS)
-	day6.Subscribe(DAYS)
-	day7.Subscribe(DAYS)
-	day8.Subscribe(DAYS)
-	day9.Subscribe(DAYS)
+	day01.Subscribe(DAYS)
+	day02.Subscribe(DAYS)
+	day03.Subscribe(DAYS)
+	day04.Subscribe(DAYS)
+	day05.Subscribe(DAYS)
+	day06.Subscribe(DAYS)
+	day07.Subscribe(DAYS)
+	day08.Subscribe(DAYS)
+	day09.Subscribe(DAYS)
 
 	wd, _ := os.Getwd()
 	path := filepath.Join(wd, fmt.Sprintf("advent/day%d.txt", day))

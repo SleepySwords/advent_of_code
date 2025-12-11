@@ -34,20 +34,33 @@ func (d *Day11) countPaths(node string) int {
 	return total
 }
 
-func (d *Day11) countDacPaths(node string, found int) int {
-	if node == "out" && found == 3 {
-		return 1
+type State struct {
+	node  string
+	found int
+}
+
+func (d *Day11) countDacPaths(node string, found int, cache map[State]int) int {
+	if node == "out" {
+		if found&0b11 == 0b11 {
+			return 1
+		}
+		return 0
 	}
 	if node == "fft" {
-		found += 1
+		found |= 1
 	}
 	if node == "dac" {
-		found += 2
+		found |= 0b10
+	}
+	cached_value, ok := cache[State{node, found}]
+	if ok {
+		return cached_value
 	}
 	total := 0
 	for _, edge := range d.edges[node] {
-		total += d.countDacPaths(edge, found)
+		total += d.countDacPaths(edge, found, cache)
 	}
+	cache[State{node, found}] = total
 	return total
 }
 
@@ -56,7 +69,7 @@ func (d *Day11) Part1() any {
 }
 
 func (d *Day11) Part2() any {
-	return d.countDacPaths("svr", 0)
+	return d.countDacPaths("svr", 0, map[State]int{})
 }
 
 type Edge struct {
